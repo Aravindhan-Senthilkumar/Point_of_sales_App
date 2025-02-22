@@ -4,21 +4,29 @@ import BarcodeGenerator from './BarcodeGenerator'
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProductInfoScreen from './ProductInfoScreen';
+import AuthStack from './src/navigation/AuthStack';
+// import { PaperProvider } from 'react-native-paper';
+// import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const App = () => {
 
   const Stack = createNativeStackNavigator()
   return (
-    
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown:false }}>
-        <Stack.Screen name='BarCodeGenerator' component={BarcodeGenerator}/>
-        <Stack.Screen name='ProductInfoScreen' component={ProductInfoScreen}/>
-      </Stack.Navigator>
-    </NavigationContainer>
+  <Stack.Navigator screenOptions={{ headerShown:false }}>
+    <Stack.Screen name='BarCodeGenerator' component={BarcodeGenerator}/>
+    <Stack.Screen name='ProductInfoScreen' component={ProductInfoScreen}/>
+  </Stack.Navigator>
+</NavigationContainer>
   )
 }
 
-export default App
+{/* <PaperProvider>
+      <SafeAreaProvider>
+      <AuthStack />
+      </SafeAreaProvider>
+    </PaperProvider>
+   */}
+  export default App
 
 const styles = StyleSheet.create({})
