@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "103001125235",
+    "firebase_url": "https://posapp-a0d4a-default-rtdb.firebaseio.com",
+    "project_id": "posapp-a0d4a",
+    "storage_bucket": "posapp-a0d4a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:103001125235:android:0167f11b68c6881f4d5506",
+        "android_client_info": {
+          "package_name": "com.integratedapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "103001125235-ece9drv5mf7m95igs4rigtcns4b4hudv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.integratedapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqRu_481PPwKl71_iAN89yeHhd4ngp9zA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
