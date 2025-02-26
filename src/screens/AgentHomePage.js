@@ -6,16 +6,17 @@ import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import {useNavigation} from '@react-navigation/native';
+import useUserStore from '../store/useUserStore';
 
 const AgentHomePage = () => {
   const navigation = useNavigation();
-
+  const { agent } = useUserStore();
+  console.log(agent);
   return (
     <View style={styles.container}>
       <Header />
-
       <View style={styles.welcomeTextContainer}>
-        <Text style={styles.WelcomeText}>WELCOME AGENT</Text>
+        <Text style={styles.WelcomeText}>WELCOME {agent.AgentName},</Text>
         <TouchableOpacity onPress={() => navigation.navigate('DriveLogin')}>
           <Text>Go to drive backup page</Text>
         </TouchableOpacity>
@@ -35,7 +36,7 @@ const styles = StyleSheet.create({
   },
   WelcomeText: {
     fontFamily: fonts.medium,
-    fontSize: dimensions.xl,
+    fontSize: dimensions.md,
   },
   welcomeTextContainer: {
     marginVertical: dimensions.xl * 1.5,

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Pressable,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import {colors} from '../constants/colors';
@@ -17,10 +17,7 @@ import {fonts} from '../constants/fonts';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
-import {launchImageLibrary} from 'react-native-image-picker';
-import Feather from 'react-native-vector-icons/Feather';
 import {ActivityIndicator, Button, MD2Colors, Modal} from 'react-native-paper';
-import axios from 'axios';
 import useUserStore from '../store/useUserStore';
 import Foundation from 'react-native-vector-icons/Foundation';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -46,7 +43,7 @@ const AgentLogin = () => {
   const [logoUri, setLogoUri] = useState();
 
   //Zustand Store
-  const {setAgentData, agent} = useUserStore();
+  const {setAgentData} = useUserStore();
 
   //KeyPad Pressing Function
   const handlePress = key => {
@@ -59,23 +56,23 @@ const AgentLogin = () => {
       setPin(pin + key.toString());
     }
   };
-
-
-  //Fetching Admin LOGO 
-  useEffect(() => {
+  const fetchAdminLogo = useCallback(async () => {
     setLogoLoading(true)
     try{
-      const fetchadminLogo = async () => {
       const adminLogo = await getFirestore().collection('admin').doc('admin').get();
-        setLogoUri(adminLogo.data().AdminLogoUri)
-      }
-      fetchadminLogo();
+      setLogoUri(adminLogo.exists ? adminLogo.data().AdminLogoUri : null)
     }catch(error){
      setLogoUri(null) 
     }finally{
       setLogoLoading(false)
     }
   },[])
+
+  //Fetching Admin LOGO 
+  useEffect(() => {
+    fetchAdminLogo()
+  },[fetchAdminLogo])
+
 
   //Handle Agent Login
   const handleLogin = async () => {
@@ -91,8 +88,6 @@ const AgentLogin = () => {
         setError("Agent doesn't exist");
         setLoading(false);
         return;
-      }else{
-        console.log("Agent exists")
       }
       setAgentData(isExist.data());
       setIsVisible(true);
@@ -116,11 +111,11 @@ const AgentLogin = () => {
         <View style={styles.Innercontainer}>
           <Text style={styles.headerText}>AGENT LOGIN</Text>
           <View>
-            <View style={[styles.imageWrapper, !logoLoading ? { justifyContent:'center',alignItems:'center' } : null]}>
+            <View style={[styles.imageWrapper, logoLoading ? { justifyContent:'center' } : null ]}>
               {
-                logoLoading 
+                logoLoading
                 ? (
-                  <View style={{ alignSelf:'center' }}>
+                  <View>
                    <ActivityIndicator 
                    animating={true}
                    color={MD2Colors.blue900}

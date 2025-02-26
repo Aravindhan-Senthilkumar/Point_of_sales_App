@@ -1,4 +1,4 @@
-import { Image, Pressable,Text, StyleSheet, TouchableWithoutFeedback, View } from 'react-native'
+import { Image, Pressable,Text, StyleSheet, TouchableWithoutFeedback, View, ScrollView } from 'react-native'
 import React from 'react'
 import { colors } from '../constants/colors';
 import { dimensions } from '../constants/dimensions';
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     backgroundColor:'f0f0f0',
     justifyContent:'center',
     alignItems:'center',
-    paddingBottom:dimensions.xl * 2.5
+    marginBottom:dimensions.xl * 2
   },
   btnContainer:{
     gap:dimensions.md
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   container2:{
   backgroundColor: colors.orange,
-  height:dimensions.height/2,
+  height:dimensions.height/1.75,
   width:'auto',
   borderBottomLeftRadius:dimensions.xl,
   borderBottomRightRadius:dimensions.xl,

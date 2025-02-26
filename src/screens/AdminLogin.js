@@ -23,15 +23,16 @@ import {useNavigation} from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {getFirestore} from '@react-native-firebase/firestore';
+import { firebase } from '@react-native-firebase/storage';
 import {ActivityIndicator, Button, MD2Colors, Modal} from 'react-native-paper';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Foundation from 'react-native-vector-icons/Foundation';
-import axios from 'axios';
 import useAdminStore from '../store/useAdminStore';
 
 const AdminLogin = () => {
 
   const navigation = useNavigation();
+  
   // State Updates
   const [logoUri, setLogoUri] = useState(null);
   const [username, setUserName] = useState('');
@@ -49,12 +50,7 @@ const AdminLogin = () => {
   //Zustand Store
   const {adminUsername, setAdminUserName} = useAdminStore();
 
-  //Cloudinary API
-  const CLOUDINARY_URL =
-    'https://api.cloudinary.com/v1_1/dx5pxvbcv/image/upload';
-  const UPLOAD_PRESET = 'admin_logos';
-
-  //Logo Uploading
+  //LogoUploadingFirebaseStorage
   const handleLogoUpload = () => {
     if (isLogin) {
       const options = {mediaType: 'photo', quality: 1};
@@ -81,22 +77,13 @@ const AdminLogin = () => {
         }
         setUploadingLogo(true);
         try {
-          // Upload to Cloudinary
-          const data = new FormData();
-          data.append('file', {
-            uri: imageUri,
-            type: 'image/jpeg',
-            name: 'logo.jpg',
-          });
-          data.append('upload_preset', UPLOAD_PRESET);
-          data.append('cloud_name', 'dx5pxvbcv');
-
-          const cloudResponse = await axios.post(CLOUDINARY_URL, data, {
-            headers: {'Content-Type': 'multipart/form-data'},
-          });
-
-          const imageUrl = cloudResponse.data.secure_url;
-          console.log('Uploaded Image URL:', imageUrl);
+          // Upload to Firebase Storage
+          const fileName = `admin_logos/${adminUsername}/logo.jpg`;
+          const reference = firebase.storage().ref(fileName);
+          const responseBlob = fetch(imageUri);
+          const blob = responseBlob.blob();
+          await reference.put(blob);
+          const imageUrl = await reference.getDownloadURL()
           // Upload URL to Firestore
           if (adminUsername) {
             await getFirestore()

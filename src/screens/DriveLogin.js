@@ -15,7 +15,7 @@ const DriveLogin = () => {
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
-        '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
+        '103001125235-ece9drv5mf7m95igs4rigtcns4b4hudv.apps.googleusercontent.com',
       scopes: ['https://www.googleapis.com/auth/drive.file'],
     });
   }, []);
