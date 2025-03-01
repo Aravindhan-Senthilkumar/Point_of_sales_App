@@ -1,30 +1,31 @@
-import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import ProductInfoScreen from './src/screens/ProductInfoScreen';
-import AuthStack from './src/navigation/AuthStack';
+import AuthStack from './src/navigator/AuthStack';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import useAuthStore from './src/store/useAuthStore';
+import AgentStack from './src/navigator/AgentStack';
+import AdminStack from './src/navigator/AdminStack';
 globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
-const App = () => {
 
-  const Stack = createNativeStackNavigator()
+const MainContent = () => {
+  const { authUser } = useAuthStore();
+  return (
+    <>
+    { authUser === 'Agent' ? (<AgentStack />): null}
+    { authUser === 'Admin' ? (<AdminStack />): null}
+    { authUser === null || authUser === undefined ? (<AuthStack />): null}  
+    </>
+  )
+}
+
+const App = () => {
   return (
     <PaperProvider>
       <SafeAreaProvider>
-      <AuthStack />
+      <MainContent />
       </SafeAreaProvider>
       </PaperProvider>
   )
 }
 
-  export default App
-  
-  const styles = StyleSheet.create({})
-  //     <NavigationContainer>
-  //   <Stack.Navigator screenOptions={{ headerShown:false }}>
-  //     <Stack.Screen name='BarCodeGenerator' component={BarcodeGenerator}/>
-  //     <Stack.Screen name='ProductInfoScreen' component={ProductInfoScreen}/>
-  //   </Stack.Navigator>
-  // </NavigationContainer>
+export default App

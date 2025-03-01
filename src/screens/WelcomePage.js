@@ -6,10 +6,8 @@ import Footer from '../components/Footer';
 import { fonts } from '../constants/fonts';
 import { useNavigation } from '@react-navigation/native';
 
-
 const WelcomePage = () => {
   const navigation = useNavigation();
-  
   return (
     <>
     <View style={styles.container}>

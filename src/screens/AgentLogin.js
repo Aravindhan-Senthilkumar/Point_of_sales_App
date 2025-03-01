@@ -16,15 +16,16 @@ import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import {useNavigation} from '@react-navigation/native';
 import {ActivityIndicator, Button, MD2Colors, Modal} from 'react-native-paper';
-import useUserStore from '../store/useUserStore';
+import useAgentStore from '../store/useAgentStore';
 import Foundation from 'react-native-vector-icons/Foundation';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import {getFirestore} from '@react-native-firebase/firestore';
+import useAuthStore from '../store/useAuthStore';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import useCartStore from '../store/useCartStore';
 
 const AgentLogin = () => {
-  const navigation = useNavigation();
 
   // KeyPad Arrays
   const arrayButton1 = [1, 2, 3, '⌫'];
@@ -43,8 +44,12 @@ const AgentLogin = () => {
   const [logoUri, setLogoUri] = useState();
 
   //Zustand Store
-  const {setAgentData} = useUserStore();
+  const { setAgentData,agent } = useAgentStore();
 
+  const { setCartFromBackup,cart } = useCartStore();
+  console.log('cart: ', cart);
+
+  const { setAuthUser } = useAuthStore();
   //KeyPad Pressing Function
   const handlePress = key => {
     setError('');
@@ -101,7 +106,63 @@ const AgentLogin = () => {
     }
   };
 
-  //Logo Uploading
+  //Backup and Restore gdrive backup
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreModalVisible,setRestoreVisible] = useState(false)  
+  const [restoreModalContent,setRestoreModalContent] = useState('');
+
+  //   useEffect(() => {
+  //         GoogleSignin.configure({
+  //           webClientId:
+  //             '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
+  //           scopes: ['https://www.googleapis.com/auth/drive.file'],
+  //         });
+  //       }, []);
+
+  //   const RestoreDataFromDrive = async () => {
+  //         setRestoreLoading(true)
+  //           try {
+  //             const userId = agent.AgentID;
+  //             await GoogleSignin.signIn();
+  //             const currentUser = await GoogleSignin.getTokens();
+  //             const token = currentUser.accessToken;
+  //             // Search for the latest backup file in the root directory
+  //             const searchResponse = await fetch(
+  //               `https://www.googleapis.com/drive/v3/files?q=name contains 'backup_${userId}_'&orderBy=createdTime desc&fields=files(id, name)`,
+  //               {
+  //                 method: 'GET',
+  //                 headers: {Authorization: `Bearer ${token}`},
+  //               },
+  //             );
+  //             const searchData = await searchResponse.json();
+  //             console.log('searchData: ', searchData);
+  //             if (!searchData.files || searchData.files.length === 0) {
+  //               setRestoreModalContent("Data couldn't found");
+  //               return;
+  //             }
+  //             const latestFile = searchData.files[0];
+  //             // Download backup file
+  //             const downloadResponse = await fetch(
+  //               `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`,
+  //               {
+  //                 method: 'GET',
+  //                 headers: {Authorization: `Bearer ${token}`},
+  //               },
+  //             );
+  //             if (!downloadResponse.ok) {
+  //               setRestoreModalContent("Error downloading file");
+  //               return;
+  //             }
+  //             const jsonData = await downloadResponse.json();
+  //             // Restore data to Firestore
+  //             await setCartFromBackup(jsonData[1]);
+  //             setRestoreModalContent('Restore successful for user');
+  //           } catch (error) {
+  //             console.error('Error restoring backup:', error);
+  //           }finally{
+  //             setRestoreLoading(false)
+  //           }
+  //         };
 
   return (
     <TouchableWithoutFeedback>
@@ -219,6 +280,68 @@ const AgentLogin = () => {
           </View>
         </Modal>
 
+
+        <Modal
+          visible={restoreModalVisible}
+          contentContainerStyle={{
+            backgroundColor: colors.pureWhite,
+            height: dimensions.height / 3,
+            margin: dimensions.xl,
+            borderRadius: dimensions.sm,
+          }}>
+          <View style={{alignItems: 'center'}}>
+            {
+              restoreLoading 
+              ? (<>
+                <ActivityIndicator 
+                size='large'
+                />
+                <Text>Restoring backup...</Text>
+                </>
+              )
+              : (
+            <>
+            {
+              restoreModalContent === 'Restore successful for user' 
+              ? (
+                <AntDesign 
+                name="checkcircle"
+                color="green"
+                size={dimensions.width / 4}
+                />
+              )
+              : (
+                <Foundation 
+                name="alert"
+                color={colors.red}
+                size={dimensions.width / 4}
+                />
+              )
+            }
+            <Text
+            style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
+            {restoreModalContent}
+            </Text>
+            <Button
+              onPress={() => {
+                setIsVisible(false);
+                setModalError('');
+                setModalContent('');
+                setRestoreVisible(false)
+                setTimeout(() => {
+                    setAuthUser('Agent')
+                  },500)
+                }}
+                style={{paddingHorizontal: dimensions.xl, margin: dimensions.sm}}
+                textColor={colors.pureWhite}
+                buttonColor={colors.darkblue}>
+              Proceed to Homepage
+            </Button>
+                </>
+              )
+            }
+          </View>
+        </Modal>
         <Modal
           visible={isVisible}
           contentContainerStyle={{
@@ -242,9 +365,8 @@ const AgentLogin = () => {
                 setIsVisible(false);
                 setModalError('');
                 setModalContent('');
-                setTimeout(() => {
-                  navigation.replace('AgentHomePage')
-                },500)
+                setRestoreVisible(true);
+                // RestoreDataFromDrive();
               }}
               style={{paddingHorizontal: dimensions.xl, margin: dimensions.sm}}
               textColor={colors.pureWhite}

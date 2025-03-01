@@ -4,18 +4,16 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {
   getFirestore,
 } from '@react-native-firebase/firestore';
-import useUserStore from '../store/useUserStore';
-
-
+import useAgentStore from '../store/useAgentStore';
 
 const DriveLogin = () => {
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
-  const {agent} = useUserStore();
+  const {agent} = useAgentStore();
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
-        '103001125235-ece9drv5mf7m95igs4rigtcns4b4hudv.apps.googleusercontent.com',
+        '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
       scopes: ['https://www.googleapis.com/auth/drive.file'],
     });
   }, []);
