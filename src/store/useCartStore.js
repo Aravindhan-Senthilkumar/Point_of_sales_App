@@ -1,7 +1,9 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware'; // Updated import path for Zustand >= 4.0
+import { persist, createJSONStorage } from 'zustand/middleware'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const useCartStore = create(
+  persist(
     (set) => ({
       cart: [], // Array of { productId, weight, quantity, price }
       addToCart: (product, weight, quantity) =>
@@ -44,17 +46,16 @@ const useCartStore = create(
       paymentConfirmation:false,
       setPaymentConfirmation:(boolean) => set({ paymentConfirmation:boolean }),
       setCartFromBackup: (array) => set({ cart:[...array] })
-    // }),
-    // {
-    //   name: 'cart-storage',
-    //   storage: createJSONStorage(() => AsyncStorage),
-    //   onRehydrateStorage: () => (state) => {
-    //     console.log('Hydrating cart store:', state);
-    //   },
-    //   onError: (error) => {
-    //     console.error('Persist error in cart store:', error);
-    //   },
-    // }
- }))
+    }),
+    {
+      name: 'cart-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        console.log('Hydrating cart store:', state);
+      },
+      onError: (error) => {
+        console.error('Persist error in cart store:', error);
+      },
+}))
 
 export default useCartStore;

@@ -16,6 +16,7 @@ import useAuthStore from '../store/useAuthStore';
 import { ActivityIndicator, Modal } from 'react-native-paper';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import useAdminStore from '../store/useAdminStore';
+import BackgroundService from 'react-native-background-actions';
 
 const AdminHomePage = () => {
   const navigation = useNavigation();
