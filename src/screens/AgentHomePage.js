@@ -29,13 +29,13 @@ const AgentHomePage = () => {
   //Backup Logics
   const [loading,setLoading] = useState(false)
 
-  // useEffect(() => {
-  //       GoogleSignin.configure({
-  //         webClientId:
-  //           '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
-  //         scopes: ['https://www.googleapis.com/auth/drive.file'],
-  //       });
-  //     }, []);
+  useEffect(() => {
+        GoogleSignin.configure({
+          webClientId:
+            '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
+          scopes: ['https://www.googleapis.com/auth/drive.file'],
+        });
+      }, []);
 
   // const backupTask = async () => {
   //   await new Promise(async (resolve) => {
@@ -95,54 +95,54 @@ const AgentHomePage = () => {
   //   });
   // };
 
-  // const backUpTaskWhileLogOut = async () => {
-  //   setLoading(true);
-  //       try {
-  //         const userId = agent.AgentID;
-  //         await GoogleSignin.signIn();
-  //         const currentUser = await GoogleSignin.getTokens();
-  //         const token = currentUser.accessToken;
-  //         const data = agent;
-  //         const backupData = [data,cart]
-  //         const jsonData = JSON.stringify(backupData);
-  //         const metadata = {
-  //           name: `backup_${userId}_${new Date().toISOString()}.json`,
-  //           mimeType: 'application/json',
-  //         };
+  const backUpTaskWhileLogOut = async () => {
+    setLoading(true);
+        try {
+          const userId = agent.AgentID;
+          await GoogleSignin.signIn();
+          const currentUser = await GoogleSignin.getTokens();
+          const token = currentUser.accessToken;
+          const data = agent;
+          const backupData = [data,cart]
+          const jsonData = JSON.stringify(backupData);
+          const metadata = {
+            name: `backup_${userId}_${new Date().toISOString()}.json`,
+            mimeType: 'application/json',
+          };
     
-  //         // Upload metadata to get file ID
-  //         const metadataResponse = await fetch(
-  //           'https://www.googleapis.com/drive/v3/files?uploadType=multipart',
-  //           {
-  //             method: 'POST',
-  //             headers: {
-  //               Authorization: `Bearer ${token}`,
-  //               'Content-Type': 'application/json; charset=UTF-8',
-  //             },
-  //             body: JSON.stringify(metadata),
-  //           },
-  //         );
+          // Upload metadata to get file ID
+          const metadataResponse = await fetch(
+            'https://www.googleapis.com/drive/v3/files?uploadType=multipart',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json; charset=UTF-8',
+              },
+              body: JSON.stringify(metadata),
+            },
+          );
     
-  //         const fileMetadata = await metadataResponse.json();   
-  //         // Upload raw JSON data (without encryption)
-  //         await fetch(
-  //           `https://www.googleapis.com/upload/drive/v3/files/${fileMetadata.id}?uploadType=media`,
-  //           {
-  //             method: 'PATCH',
-  //             headers: {
-  //               Authorization: `Bearer ${token}`,
-  //               'Content-Type': 'application/json',
-  //             },
-  //             body: jsonData, // No encryption applied
-  //           },
-  //         );
-  //         setBackUpSuccessModal(true);
-  //       } catch (error) {
-  //         Alert.alert('Backup failed: ' + error.message);
-  //       } finally {
-  //         setLoading(false);
-  //       }
-  // }
+          const fileMetadata = await metadataResponse.json();   
+          // Upload raw JSON data (without encryption)
+          await fetch(
+            `https://www.googleapis.com/upload/drive/v3/files/${fileMetadata.id}?uploadType=media`,
+            {
+              method: 'PATCH',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: jsonData, // No encryption applied
+            },
+          );
+          setBackUpSuccessModal(true);
+        } catch (error) {
+          Alert.alert('Backup failed: ' + error.message);
+        } finally {
+          setLoading(false);
+        }
+  }
 
   // const options = {
   // taskName: 'GoogleDriveBackup',

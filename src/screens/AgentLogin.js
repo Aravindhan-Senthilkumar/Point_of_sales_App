@@ -111,58 +111,58 @@ const AgentLogin = () => {
   const [restoreModalVisible,setRestoreVisible] = useState(false)  
   const [restoreModalContent,setRestoreModalContent] = useState('');
 
-  //   useEffect(() => {
-  //         GoogleSignin.configure({
-  //           webClientId:
-  //             '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
-  //           scopes: ['https://www.googleapis.com/auth/drive.file'],
-  //         });
-  //       }, []);
+    useEffect(() => {
+          GoogleSignin.configure({
+            webClientId:
+              '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
+            scopes: ['https://www.googleapis.com/auth/drive.file'],
+          });
+        }, []);
 
-  //   const RestoreDataFromDrive = async () => {
-  //         setRestoreLoading(true)
-  //           try {
-  //             const userId = agent.AgentID;
-  //             await GoogleSignin.signIn();
-  //             const currentUser = await GoogleSignin.getTokens();
-  //             const token = currentUser.accessToken;
-  //             // Search for the latest backup file in the root directory
-  //             const searchResponse = await fetch(
-  //               `https://www.googleapis.com/drive/v3/files?q=name contains 'backup_${userId}_'&orderBy=createdTime desc&fields=files(id, name)`,
-  //               {
-  //                 method: 'GET',
-  //                 headers: {Authorization: `Bearer ${token}`},
-  //               },
-  //             );
-  //             const searchData = await searchResponse.json();
-  //             console.log('searchData: ', searchData);
-  //             if (!searchData.files || searchData.files.length === 0) {
-  //               setRestoreModalContent("Data couldn't found");
-  //               return;
-  //             }
-  //             const latestFile = searchData.files[0];
-  //             // Download backup file
-  //             const downloadResponse = await fetch(
-  //               `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`,
-  //               {
-  //                 method: 'GET',
-  //                 headers: {Authorization: `Bearer ${token}`},
-  //               },
-  //             );
-  //             if (!downloadResponse.ok) {
-  //               setRestoreModalContent("Error downloading file");
-  //               return;
-  //             }
-  //             const jsonData = await downloadResponse.json();
-  //             // Restore data to Firestore
-  //             await setCartFromBackup(jsonData[1]);
-  //             setRestoreModalContent('Restore successful for user');
-  //           } catch (error) {
-  //             console.error('Error restoring backup:', error);
-  //           }finally{
-  //             setRestoreLoading(false)
-  //           }
-  //         };
+    const RestoreDataFromDrive = async () => {
+          setRestoreLoading(true)
+            try {
+              const userId = agent.AgentID;
+              await GoogleSignin.signIn();
+              const currentUser = await GoogleSignin.getTokens();
+              const token = currentUser.accessToken;
+              // Search for the latest backup file in the root directory
+              const searchResponse = await fetch(
+                `https://www.googleapis.com/drive/v3/files?q=name contains 'backup_${userId}_'&orderBy=createdTime desc&fields=files(id, name)`,
+                {
+                  method: 'GET',
+                  headers: {Authorization: `Bearer ${token}`},
+                },
+              );
+              const searchData = await searchResponse.json();
+              console.log('searchData: ', searchData);
+              if (!searchData.files || searchData.files.length === 0) {
+                setRestoreModalContent("Data couldn't found");
+                return;
+              }
+              const latestFile = searchData.files[0];
+              // Download backup file
+              const downloadResponse = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`,
+                {
+                  method: 'GET',
+                  headers: {Authorization: `Bearer ${token}`},
+                },
+              );
+              if (!downloadResponse.ok) {
+                setRestoreModalContent("Error downloading file");
+                return;
+              }
+              const jsonData = await downloadResponse.json();
+              // Restore data to Firestore
+              await setCartFromBackup(jsonData[1]);
+              setRestoreModalContent('Restore successful for user');
+            } catch (error) {
+              console.error('Error restoring backup:', error);
+            }finally{
+              setRestoreLoading(false)
+            }
+          };
 
   return (
     <TouchableWithoutFeedback>
@@ -230,7 +230,7 @@ const AgentLogin = () => {
             <View>
               <TouchableOpacity
                 style={styles.LoginContainer}
-                onPress={() => handleLogin()}>
+                onPress={loading ? null : handleLogin}>
                 <LinearGradient
                   colors={[colors.orange, colors.darkblue]}
                   start={{x: 1, y: 0}}
@@ -361,12 +361,12 @@ const AgentLogin = () => {
               {modalContent}
             </Text>
             <Button
-              onPress={() => {
+              onPress={restoreLoading ? null : () => {
                 setIsVisible(false);
                 setModalError('');
                 setModalContent('');
                 setRestoreVisible(true);
-                // RestoreDataFromDrive();
+                RestoreDataFromDrive();
               }}
               style={{paddingHorizontal: dimensions.xl, margin: dimensions.sm}}
               textColor={colors.pureWhite}

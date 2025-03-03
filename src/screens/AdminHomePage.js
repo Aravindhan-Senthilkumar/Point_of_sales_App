@@ -17,6 +17,8 @@ import { ActivityIndicator, Modal } from 'react-native-paper';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import useAdminStore from '../store/useAdminStore';
 import BackgroundService from 'react-native-background-actions';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { getFirestore } from '@react-native-firebase/firestore';
 
 const AdminHomePage = () => {
   const navigation = useNavigation();
@@ -26,89 +28,89 @@ const AdminHomePage = () => {
   //Backup Logics
   const [loading,setLoading] = useState(false)
 
-  // useEffect(() => {
-  //       GoogleSignin.configure({
-  //         webClientId:
-  //           '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
-  //         scopes: ['https://www.googleapis.com/auth/drive.file'],
-  //       });
-  //     }, []);  
+  useEffect(() => {
+        GoogleSignin.configure({
+          webClientId:
+            '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
+          scopes: ['https://www.googleapis.com/auth/drive.file'],
+        });
+      }, []);  
 
-  // const backupTask = async () => {
-  //   await new Promise(async (resolve) => {
-  //     while (BackgroundService.isRunning()) {
-  //       setLoading(true);
-  //       try {
-  //         const userId = adminId;
-  //         await GoogleSignin.signIn();
-  //         const currentUser = await GoogleSignin.getTokens();
-  //         const token = currentUser.accessToken;
-  //         const agentsData = await getFirestore().collection('agents').get()
-  //         const MetaData = await getFirestore().collection('metadata').get()
-  //         const MetaDataCollection = MetaData.docs.map((doc) => ({
-  //           id: doc.id,
-  //           ...doc.data()
-  //         }))
-  //         const AgentsDataCollection = agentsData.docs.map(doc => ({
-  //           id: doc.id,
-  //           ...doc.data(),
-  //         }));
-  //         const orderData = await getFirestore().collection('orders').get()
-  //         const OrderDataCollection = orderData.docs.map(doc => ({
-  //           id:doc.id,
-  //           ...doc.data(),
-  //         }))
-  //         const productsData = await getFirestore().collection('products').get()
-  //         const ProductDataCollection = productsData.docs.map(doc => ({
-  //           id:doc.id,
-  //           ...doc.data(),
-  //         }))
-  //         const backupData = [MetaDataCollection,AgentsDataCollection,OrderDataCollection,ProductDataCollection]
-  //         const jsonData = JSON.stringify(backupData);
-  //         const metadata = {
-  //           name: `backup_${userId}_${new Date().toISOString()}.json`,
-  //           mimeType: 'application/json',
-  //         };
-  //         // Upload metadata to get file ID
-  //         const metadataResponse = await fetch(
-  //           'https://www.googleapis.com/drive/v3/files?uploadType=multipart',
-  //           {
-  //             method: 'POST',
-  //             headers: {
-  //               Authorization: `Bearer ${token}`,
-  //               'Content-Type': 'application/json; charset=UTF-8',
-  //             },
-  //             body: JSON.stringify(metadata),
-  //           },
-  //         );
-  //         console.log('metadataResponse: ', metadataResponse);
-  //         const fileMetadata = await metadataResponse.json();
-  //         console.log('fileMetadata: ', fileMetadata);
-  //         // Upload raw JSON data (without encryption)
-  //         await fetch(
-  //           `https://www.googleapis.com/upload/drive/v3/files/${fileMetadata.id}?uploadType=media`,
-  //           {
-  //             method: 'PATCH',
-  //             headers: {
-  //               Authorization: `Bearer ${token}`,
-  //               'Content-Type': 'application/json',
-  //             },
-  //             body: jsonData, // No encryption applied
-  //           },
-  //         );
-  //         setBackUpSuccessModal(true);
-  //         setTimeout(() => {
-  //           setBackUpSuccessModal(false)
-  //         },900)
-  //       } catch (error) {
-  //         Alert.alert('Backup failed: ' + error.message);
-  //       } finally {
-  //         setLoading(false);
-  //         await new Promise((r) => setTimeout(r, 86400000));
-  //       }
-  //     }
-  //   });
-  // };
+  const backupTask = async () => {
+    await new Promise(async (resolve) => {
+      while (BackgroundService.isRunning()) {
+        setLoading(true);
+        try {
+          const userId = adminId;
+          await GoogleSignin.signIn();
+          const currentUser = await GoogleSignin.getTokens();
+          const token = currentUser.accessToken;
+          const agentsData = await getFirestore().collection('agents').get()
+          const MetaData = await getFirestore().collection('metadata').get()
+          const MetaDataCollection = MetaData.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          const AgentsDataCollection = agentsData.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          const orderData = await getFirestore().collection('orders').get()
+          const OrderDataCollection = orderData.docs.map(doc => ({
+            id:doc.id,
+            ...doc.data(),
+          }))
+          const productsData = await getFirestore().collection('products').get()
+          const ProductDataCollection = productsData.docs.map(doc => ({
+            id:doc.id,
+            ...doc.data(),
+          }))
+          const backupData = [MetaDataCollection,AgentsDataCollection,OrderDataCollection,ProductDataCollection]
+          const jsonData = JSON.stringify(backupData);
+          const metadata = {
+            name: `backup_${userId}_${new Date().toISOString()}.json`,
+            mimeType: 'application/json',
+          };
+          // Upload metadata to get file ID
+          const metadataResponse = await fetch(
+            'https://www.googleapis.com/drive/v3/files?uploadType=multipart',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json; charset=UTF-8',
+              },
+              body: JSON.stringify(metadata),
+            },
+          );
+          console.log('metadataResponse: ', metadataResponse);
+          const fileMetadata = await metadataResponse.json();
+          console.log('fileMetadata: ', fileMetadata);
+          // Upload raw JSON data (without encryption)
+          await fetch(
+            `https://www.googleapis.com/upload/drive/v3/files/${fileMetadata.id}?uploadType=media`,
+            {
+              method: 'PATCH',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: jsonData, // No encryption applied
+            },
+          );
+          setBackUpSuccessModal(true);
+          setTimeout(() => {
+            setBackUpSuccessModal(false)
+          },900)
+        } catch (error) {
+          Alert.alert('Backup failed: ' + error.message);
+        } finally {
+          setLoading(false);
+          await new Promise((r) => setTimeout(r, 86400000));
+        }
+      }
+    });
+  };
   // const options = {
   // taskName: 'GoogleDriveBackup',
   // taskTitle: 'Backup in Progress',
@@ -122,13 +124,106 @@ const AdminHomePage = () => {
   // useEffect(() => {
   //   const unsubscribe = navigation.addListener('focus', async () => {
   //     if (!BackgroundService.isRunning()) {
-  //       await BackgroundService.start(backupTask, options);
+  //       try {
+  //         await BackgroundService.start(backupTask, options);
+  //         console.log('Background service started for periodic backups');
+  //       } catch (error) {
+  //         console.error('Failed to start background service:', error);
+  //         Alert.alert('Backup Error', 'Failed to start backup service. Please try again.');
+  //       }
   //     }
   //   });
-  //   return unsubscribe;
-  // }, [navigation]);
+
+   // return () => {
+   //   if (BackgroundService.isRunning()) {
+   //     BackgroundService.stop();
+   //   }
+    //  unsubscribe();
+   // };
+ // }, [navigation]);
   
   const [backUpSuccessModal, setBackUpSuccessModal] = useState(false);
+
+  const handleLogout = async () => {
+    await backupTaskWhileLogOut();
+  }
+  const backupTaskWhileLogOut = async () => {
+        setLoading(true)
+        try {
+          const userId = adminId;
+          console.log('userId: ', userId);
+          await GoogleSignin.signIn();
+          const currentUser = await GoogleSignin.getTokens();
+          console.log('currentUser: ', currentUser);
+          const token = currentUser.accessToken;
+          console.log('token: ', token);
+          const agentsData = await getFirestore().collection('agents').get()
+          console.log('agentsData: ', agentsData);
+          const MetaData = await getFirestore().collection('metadata').get()
+          console.log('MetaData: ', MetaData);
+          const MetaDataCollection = MetaData.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          const AgentsDataCollection = agentsData.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          const orderData = await getFirestore().collection('orders').get()
+          console.log('orderData: ', orderData);
+          const OrderDataCollection = orderData.docs.map(doc => ({
+            id:doc.id,
+            ...doc.data(),
+          }))
+          const productsData = await getFirestore().collection('products').get()
+          const ProductDataCollection = productsData.docs.map(doc => ({
+            id:doc.id,
+            ...doc.data(),
+          }))
+          const backupData = [MetaDataCollection,AgentsDataCollection,OrderDataCollection,ProductDataCollection]
+          const jsonData = JSON.stringify(backupData);
+          const metadata = {
+            name: `backup_${userId}_${new Date().toISOString()}.json`,
+            mimeType: 'application/json',
+          };
+          // Upload metadata to get file ID
+          const metadataResponse = await fetch(
+            'https://www.googleapis.com/drive/v3/files?uploadType=multipart',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json; charset=UTF-8',
+              },
+              body: JSON.stringify(metadata),
+            },
+          );
+          console.log('metadataResponse: ', metadataResponse);
+          const fileMetadata = await metadataResponse.json();
+          console.log('fileMetadata: ', fileMetadata);
+          // Upload raw JSON data (without encryption)
+          await fetch(
+            `https://www.googleapis.com/upload/drive/v3/files/${fileMetadata.id}?uploadType=media`,
+            {
+              method: 'PATCH',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: jsonData, // No encryption applied
+            },
+          );
+          setBackUpSuccessModal(true);
+          setTimeout(() => {
+            setAuthUser(null)
+            setBackUpSuccessModal(false);
+          },900)
+        } catch (error) {
+          Alert.alert('Backup failed: ' + error.message);
+        } finally {
+          setLoading(false);
+        }
+  };
   return (
     <View style={styles.container}>
 
@@ -180,7 +275,7 @@ const AdminHomePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.card, styles.logout]}
-            onPress={() => setAuthUser(null)}>
+            onPress={handleLogout}>
             <MaterialCommunityIcons name="logout" size={30} color="black" />
             <Text style={styles.AdminDashboardText}>Logout</Text>
           </TouchableOpacity>
