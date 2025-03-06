@@ -14,5 +14,4 @@ import { persist,createJSONStorage } from "zustand/middleware";
 )
 )
 
-
 export default useAuthStore;

@@ -51,7 +51,7 @@ const CartScreen = () => {
         </Text>
         <Text style={styles.itemName}>
           <Text style={[styles.itemName, { fontFamily: fonts.semibold }]}>Weight: </Text>
-          {item.weight}g (₹ {item.price})
+          {item.weight} (₹ {item.price})
         </Text>
         <View style={styles.quantityContainer}>
           <TouchableOpacity

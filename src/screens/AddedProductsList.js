@@ -13,7 +13,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign'
 import Feather from 'react-native-vector-icons/Feather'
 import { getFirestore } from '@react-native-firebase/firestore';
 import useProductStore from '../store/useProductStore';
-import { ActivityIndicator, MD2Colors } from 'react-native-paper';
+import { ActivityIndicator } from 'react-native-paper';
 
 const AddedProductsList = () => {
   const navigation = useNavigation();
@@ -193,17 +193,18 @@ const AddedProductsList = () => {
             source={{uri: item.ProductImage}}
             style={styles.CardImage}
             />
-          <View style={{marginVertical: dimensions.sm / 2}}>
+          <View style={{justifyContent:'center'}}>
             <Card.Content>
               <View
                 style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                 <View style={{ flexDirection:'row', justifyContent:'space-between',alignItems:'center',width:'85%'}}>
-                <Text variant="titleMedium">Product ID - {item.ProductId}</Text>
+                <Text style={{ fontFamily:fonts.regular }}>Product Id: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductId}</Text></Text>
                 <Feather name="edit" size={dimensions.xl / 2} />
                 </View>
               </View>
-              <Text>{item.ProductName}</Text>
-              <Text>{item.BrandName}</Text>
+              <Text style={{ fontFamily:fonts.regular }}>Product Name: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductName}</Text></Text>
+              <Text style={{ fontFamily:fonts.regular }}>Brand: <Text style={{ fontFamily:fonts.semibold }}> {item.BrandName}</Text></Text>
+              <Text style={{ fontFamily:fonts.regular }}>Category: <Text style={{ fontFamily:fonts.semibold }}> {item.Category}</Text></Text>
             </Card.Content>
           </View>
         </View>

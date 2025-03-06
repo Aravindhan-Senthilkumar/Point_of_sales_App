@@ -6,13 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Appbar, Button, Text, TextInput, Menu, Modal, Badge } from 'react-native-paper';
+import { Appbar, Button, Text, TextInput, Modal, Badge } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import useCartStore from '../store/useCartStore';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import { CheckBox, Dialog } from '@rneui/themed';
 
 const ProductDetailsScreen = () => {
   const navigation = useNavigation();
@@ -100,31 +101,39 @@ const ProductDetailsScreen = () => {
       </View>
       </Appbar.Header>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContainer}>
+      <View style={styles.scrollContainer}>
         {/* Product Image */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: product.ProductImage }} style={styles.productImage} resizeMode="cover" />
-        </View>
 
         {/* Product Details */}
         <View style={styles.detailsContainer}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: product.ProductImage }} style={styles.productImage} resizeMode="cover" />
+        </View>
           {/* Product ID */}
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Product ID:</Text>
+            <Text style={styles.label}>Product ID :</Text>
             <Text style={styles.value}>{product.ProductId}</Text>
           </View>
 
           {/* Product Name */}
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Name:</Text>
+            <Text style={styles.label}>Name :</Text>
             <Text style={styles.value}>{product.ProductName}</Text>
+          </View>
+
+
+          {/* Category Name */}
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Category :</Text>
+            <Text style={styles.value}>{product.Category}</Text>
           </View>
 
           {/* Brand Name */}
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Brand:</Text>
+            <Text style={styles.label}>Brand :</Text>
             <Text style={styles.value}>{product.BrandName}</Text>
           </View>
+
 
           {/* Barcode Image */}
           <View style={styles.barcodeContainer}>
@@ -132,43 +141,51 @@ const ProductDetailsScreen = () => {
             <Image
               source={{ uri: product.BarcodeImageUri }}
               style={styles.barcodeImage}
-              resizeStyle="contain"
+              resizeMode="contain"
             />
           </View>
 
-          {/* Weight Selection with Menu */}
+          {/* Weight Selection with Menu */} 
           <View style={styles.stockSelection}>
+            <Dialog 
+            animationType='fade'
+            isVisible={menuVisible} 
+            overlayStyle={{ width:'90%',borderRadius:dimensions.sm }}
+            onDismiss={() => setMenuVisible(false)}
+            onBackdropPress={() => setMenuVisible(false)}
+            >
+              <View style={{ justifyContent:'center',borderWidth:1,borderColor:colors.lightGray,borderRadius:dimensions.sm }}>
+              <Dialog.Title title='Weight Selection' titleStyle={{ textAlign:'center',marginTop:dimensions.sm,fontSize:dimensions.xl /1.25 }}/>
+              <View style={{ marginLeft:dimensions.xl * 3 }}>
+                {product.Stocks.map((stock) => (
+                  <CheckBox 
+                  title={stock.weight}
+                  key={stock.weight}
+                  checked={selectedWeight === stock.weight}
+                  onPress={() => {
+                    setSelectedWeight(stock.weight);
+                    setTimeout(() => {
+                      setMenuVisible(false);
+                    },200)
+                  }}
+                  />
+                ))}
+                </View>
+              </View>
+            </Dialog>
             <Text style={styles.label}>Select Weight</Text>
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
                 <Button
                   mode="outlined"
                   onPress={() => setMenuVisible(true)}
                   style={styles.menuButton}
                   textColor={colors.black}
                 >
-                  {selectedWeight ? `${selectedWeight} g` : 'Select Weight'}
+                  {selectedWeight ? `${selectedWeight}` : 'Select Weight'}
                 </Button>
-              }
-            >
-              {product.Stocks.map((stock) => (
-                <Menu.Item
-                  key={stock.weight}
-                  onPress={() => {
-                    setSelectedWeight(stock.weight);
-                    setQuantity(1); // Reset quantity when weight changes
-                    setMenuVisible(false);
-                  }}
-                  title={`${stock.weight} g`}
-                />
-              ))}
-            </Menu>
             {selectedWeight && (
               <View style={styles.stockDetails}>
                 <Text style={styles.stockInfo}>
-                  Price: ₹ {selectedStock.price} | Available: {selectedStock.stocks}
+                  Price:  <Text style={{ fontFamily:fonts.bold }}>₹ {selectedStock.price}</Text> | Stocks Available: <Text style={{ fontFamily:fonts.bold }}>{selectedStock.stocks}</Text>
                 </Text>
               </View>
             )}
@@ -238,7 +255,7 @@ const ProductDetailsScreen = () => {
             </Text>
           </View>
         </Modal>
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -260,15 +277,15 @@ const styles = StyleSheet.create({
     color: colors.pureWhite,
   },
   scrollContainer: {
+    marginVertical:dimensions.md,
     flex: 1,
   },
   imageContainer: {
     alignItems: 'center',
-    marginVertical: dimensions.sm,
   },
   productImage: {
-    width: dimensions.width * 0.93,
-    height: dimensions.height * 0.4,
+    width: dimensions.width/3,
+    height: dimensions.width/3,
     borderRadius: dimensions.sm,
     borderWidth: 1,
     borderColor: colors.lightGray,
@@ -297,7 +314,7 @@ const styles = StyleSheet.create({
     color: colors.grayText,
   },
   value: {
-    fontFamily: fonts.regular,
+    fontFamily: fonts.bold,
     fontSize: dimensions.sm,
     color: colors.black,
   },
@@ -317,11 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.pureWhite,
     borderWidth: 1,
     borderColor: colors.lightGray,
-    paddingVertical: dimensions.sm / 2,
-    marginBottom: dimensions.sm,
-  },
-  stockDetails: {
-    paddingVertical: dimensions.sm / 2,
+    marginVertical: dimensions.sm,
   },
   stockInfo: {
     fontFamily: fonts.regular,
@@ -335,15 +348,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: dimensions.sm,
     marginHorizontal:dimensions.xl,
-    gap:dimensions.md
+    gap:dimensions.md,
+    marginTop:dimensions.xl
   },
   quantityButton: {
     flex:1,
     backgroundColor: colors.lightGray,
-    padding: dimensions.sm / 2,
+    padding: dimensions.sm / 6,
     borderRadius: dimensions.sm / 2,
     justifyContent:'center',
-    alignItems:'center'
+    alignItems:'center',
+    height:dimensions.xl
   },
   quantityText: {
     fontSize: dimensions.md,
@@ -358,7 +373,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: colors.darkblue,
-    marginTop: dimensions.sm,
+    marginTop: dimensions.xl,
   },
   stockHeader: {
     flexDirection: 'row',

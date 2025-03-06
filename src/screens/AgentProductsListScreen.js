@@ -179,18 +179,19 @@ const AgentProductsListScreen = () => {
             source={{uri: item.ProductImage}}
             style={styles.CardImage}
             />
-          <View style={{marginVertical: dimensions.sm / 2}}>
-            <Card.Content>
-              <View
-                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                <View style={{ flexDirection:'row', justifyContent:'space-between',alignItems:'center',width:'85%'}}>
-                <Text variant="titleMedium">Product ID - {item.ProductId}</Text>
-                </View>
-              </View>
-              <Text>{item.ProductName}</Text>
-              <Text>{item.BrandName}</Text>
-            </Card.Content>
-          </View>
+          <View style={{justifyContent:'center'}}>
+                      <Card.Content>
+                        <View
+                          style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                          <View style={{ flexDirection:'row', justifyContent:'space-between',alignItems:'center',width:'85%'}}>
+                          <Text style={{ fontFamily:fonts.regular }}>Product Id: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductId}</Text></Text>
+                          </View>
+                        </View>
+                        <Text style={{ fontFamily:fonts.regular }}>Product Name: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductName}</Text></Text>
+                        <Text style={{ fontFamily:fonts.regular }}>Brand: <Text style={{ fontFamily:fonts.semibold }}> {item.BrandName}</Text></Text>
+                        <Text style={{ fontFamily:fonts.regular }}>Category: <Text style={{ fontFamily:fonts.semibold }}> {item.Category}</Text></Text>
+                      </Card.Content>
+                    </View>
         </View>
       </Card>
       </View>

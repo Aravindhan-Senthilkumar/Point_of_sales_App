@@ -24,6 +24,7 @@ import {getFirestore} from '@react-native-firebase/firestore';
 import useAuthStore from '../store/useAuthStore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import useCartStore from '../store/useCartStore';
+import FastImage from 'react-native-fast-image';
 
 const AgentLogin = () => {
 
@@ -184,11 +185,14 @@ const AgentLogin = () => {
                     </View>
                 )
                 : (
-                    <Image
-                    style={styles.LogoImage}
-                    source={
-                      logoUri=== null ? require('../images/avatar.png') : { uri:logoUri }
-                    }
+                  <FastImage
+                  resizeMode='stretch'
+                  style={styles.LogoImage}
+                  source={
+                    logoUri=== null 
+                    ? require('../images/avatar.png') 
+                    : { uri:logoUri }
+                  }
                   />
                 )
               }
@@ -296,7 +300,7 @@ const AgentLogin = () => {
                 <ActivityIndicator 
                 size='large'
                 />
-                <Text>Restoring backup...</Text>
+                <Text style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>Restoring backup...</Text>
                 </>
               )
               : (
@@ -397,7 +401,6 @@ const styles = StyleSheet.create({
   LogoImage: {
     height: dimensions.width / 4,
     width: dimensions.width / 4,
-    resizeMode: 'stretch',
   },
   imageWrapper: {
     height: dimensions.width / 4,

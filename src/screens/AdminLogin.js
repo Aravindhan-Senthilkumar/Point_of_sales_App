@@ -23,12 +23,13 @@ import Feather from 'react-native-vector-icons/Feather';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {getFirestore} from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/storage';
-import {ActivityIndicator, Button, MD2Colors, Modal} from 'react-native-paper';
+import {ActivityIndicator, MD2Colors, Modal} from 'react-native-paper';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Foundation from 'react-native-vector-icons/Foundation';
 import useAdminStore from '../store/useAdminStore';
 import useAuthStore from '../store/useAuthStore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import { Button } from '@rneui/themed';
 
 const AdminLogin = () => {
   // State Updates
@@ -68,6 +69,7 @@ const AdminLogin = () => {
           return;
         }
         const imageUri = response.assets[0]?.uri;
+        console.log('imageUri: ', imageUri);
         if (!imageUri) {
           setIsErrorVisible(true);
           setModalContent('');
@@ -78,11 +80,16 @@ const AdminLogin = () => {
         try {
           // Upload to Firebase Storage
           const fileName = `admin_logos/${adminUsername}/logo.jpg`;
-          const reference = firebase.storage().ref(fileName);
-          const responseBlob = fetch(imageUri);
-          const blob = responseBlob.blob();
+          console.log('fileName: ', fileName);
+          const reference = await firebase.storage().ref(fileName);
+          console.log('reference: ', reference);
+          const responseBlob = await fetch(imageUri);
+          console.log('responseBlob: ', responseBlob);
+          const blob = await responseBlob.blob();
+          console.log('blob: ', blob);
           await reference.put(blob);
           const imageUrl = await reference.getDownloadURL();
+          console.log('imageUrl: ', imageUrl);
           // Upload URL to Firestore
           if (adminUsername) {
             await getFirestore()
@@ -477,16 +484,15 @@ const AdminLogin = () => {
               style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
               {modalContent}
             </Text>
-            <Button
-              onPress={() => {
+            <Button 
+            onPress={() => {
                 setIsVisible(false);
                 setModalContent('');
-              }}
-              style={{paddingHorizontal: dimensions.xl, margin: dimensions.sm}}
-              textColor={colors.pureWhite}
-              buttonColor={colors.darkblue}>
-              Proceed
-            </Button>
+              }} 
+            title='Proceed' 
+            style={{ width:'80%' }}
+            buttonStyle={{ paddingHorizontal: dimensions.md * 2, margin: dimensions.sm,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+            />
           </View>
         </Modal>
 
@@ -505,17 +511,16 @@ const AdminLogin = () => {
               size={dimensions.width / 4}
             />
             <Text style={{fontFamily: fonts.semibold}}>{modalError}</Text>
-            <Button
-              onPress={() => {
-                setIsErrorVisible(false);
-                setModalError('');
-                setModalContent('');
-              }}
-              style={{paddingHorizontal: dimensions.xl, margin: dimensions.md}}
-              textColor={colors.pureWhite}
-              buttonColor={colors.darkblue}>
-              Try again
-            </Button>
+            <Button 
+            onPress={() => {
+              setIsErrorVisible(false);
+              setModalError('');
+              setModalContent('');
+            }}
+            title='Try again' 
+            style={{ width:'80%' }}
+            buttonStyle={{ paddingHorizontal: dimensions.md * 2,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+            />
           </View>
         </Modal>
 
@@ -549,19 +554,15 @@ const AdminLogin = () => {
                 <Text style={{fontFamily: fonts.semibold}}>
                   {restoreModalContent}
                 </Text>
-                <Button
-                  onPress={() => {
-                    setRestoreModalVisible(false);
-                    handleRestoreNeeded();
-                  }}
-                  style={{
-                    paddingHorizontal: dimensions.xl,
-                    margin: dimensions.md,
-                  }}
-                  textColor={colors.pureWhite}
-                  buttonColor={colors.darkblue}>
-                  Proceed
-                </Button>
+                <Button 
+                 onPress={() => {
+                setRestoreModalVisible(false);
+                handleRestoreNeeded();
+                }}
+                title='Proceed' 
+                style={{ width:'80%' }}
+                buttonStyle={{ paddingHorizontal: dimensions.md * 2, margin: dimensions.sm,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+                />
               </>
             ) : (
               <>
@@ -577,19 +578,15 @@ const AdminLogin = () => {
                   }}>
                   {restoreModalContent}
                 </Text>
-                <Button
-                  onPress={() => {
-                    setRestoreModalVisible(false);
-                    setAuthUser('Admin')
-                  }}
-                  style={{
-                    paddingHorizontal: dimensions.xl,
-                    margin: dimensions.sm,
-                  }}
-                  textColor={colors.pureWhite}
-                  buttonColor={colors.darkblue}>
-                  Proceed
-                </Button>
+                <Button 
+                onPress={() => {
+                  setRestoreModalVisible(false);
+                  setAuthUser('Admin')
+                }} 
+                title='Proceed' 
+                style={{ width:'80%' }}
+                buttonStyle={{ paddingHorizontal: dimensions.md * 2, margin: dimensions.sm,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+                />
               </>
             )}
           </View>

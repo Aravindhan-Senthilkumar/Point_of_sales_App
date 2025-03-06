@@ -20,6 +20,7 @@ import { Overlay } from '@rneui/themed';
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import Foundation from 'react-native-vector-icons/Foundation'
 import useProductStore from '../store/useProductStore';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const ProductUpdatingScreen = () => {
   const data = useRoute().params.item
@@ -212,7 +213,7 @@ const ProductUpdatingScreen = () => {
         return;
       }
   
-      setStocksList((prev) => [ ...prev, { weight: Number(weight), stocks: Number(stocks), price: Number(price) }]);
+      setStocksList((prev) => [ ...prev, { weight: weight.concat(` ${dropdownValue}`), stocks: Number(stocks), price: Number(price) }]);
       setNewStock({ weight: '', stocks: '', price: '' });
       setErrors((prev) => ({ ...prev, weight: '', stocks: '', price: '' }));
     };
@@ -221,6 +222,13 @@ const ProductUpdatingScreen = () => {
       setStocksList((prev) => prev.filter((_,i) => i !== index));
     }
 
+    const dropdownData = [
+        { label: 'gm', value: 'gm' },
+        { label: 'lit', value: 'lit' },
+        { label: 'kg', value: 'kg' },
+      ]
+      const [dropdownValue, setDropDownValue] = useState('gm');
+      console.log('value: ', value);
   return (
     <View style={styles.container}>
       
@@ -400,54 +408,77 @@ const ProductUpdatingScreen = () => {
                     }}>
                     <Text variant="titleMedium">Stocks</Text>
                   </View>
-                  <View style={{ flex:1,width:'100%',flexDirection:'row',alignItems:'center',gap:dimensions.sm / 2,justifyContent:'center' }}>
-                      <View style={{ flex:1 }}>
-                      <TextInput
-                        keyboardType='numeric'
-                        value={newStock.weight}
-                        onChangeText={text => {
-                          setNewStock((prev) => ({ ...prev,weight:text }))
-                          setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                        }}        
-                        mode="outlined"
-                        label="Weight"
-                        cursorColor={colors.black}
-                        activeOutlineColor={colors.black}
-                        style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-                      />
-                      </View>
-                      <View style={{ flex:1 }}>
-                      <TextInput
-                        keyboardType='numeric'
-                        value={newStock.stocks}
-                        onChangeText={text => {
-                          setNewStock((prev) => ({ ...prev,stocks:text }))
-                          setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                        }}     
-                        mode="outlined"
-                        label="Stocks"
-                        cursorColor={colors.black}
-                        activeOutlineColor={colors.black}
-                        style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-                      />
-                      </View>
-                      <View style={{ flex:1 }}>
-                    <TextInput
-                      keyboardType='numeric'
-                      value={newStock.price}
-                      onChangeText={text => {
-                        setNewStock((prev) => ({ ...prev,price:text }))
-                        setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                      }}      
-                      mode="outlined"
-                      label="Price"
-                      cursorColor={colors.black}
-                      activeOutlineColor={colors.black}
-                      style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-                    />
-                      </View>
-                    <Button icon='plus' textColor={colors.black} mode='contained' style={{ backgroundColor:colors.lightGray }} onPress={() => handleAddStock()}>Add</Button>
+                  <View style={{ flex:1,width:'100%',flexDirection:'row',alignItems:'center',gap:dimensions.sm / 3,justifyContent:'center' }}>
+              <View style={{ flex:1 }}>
+              <TextInput
+                value={newStock.weight}
+                onChangeText={text => { 
+                  setNewStock((prev) => ({ ...prev,weight:text }))
+                  setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
+                }}        
+                mode="outlined"
+                label="Weight"
+                cursorColor={colors.black}
+                activeOutlineColor={colors.black}
+                style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
+              />
+              </View>
+              <View style={{ flex:1 }}>
+                <Dropdown
+                style={{ borderWidth:1,borderColor:colors.grayText,height:dimensions.md * 2,marginTop:dimensions.sm/2,width:'100%' }} 
+                data={dropdownData}
+                value={dropdownValue}
+                placeholder={dropdownValue}
+                labelField="label"
+                valueField="value"
+                selectedTextStyle={{ textAlign:'center' }}
+                onChange={(item) => {
+                  if (item.value !== value) {
+                    setDropDownValue(item.value);
+                  }
+                }}
+                placeholderStyle={{ fontSize:dimensions.sm }}
+                renderItem = {item => {
+                  return (
+                    <View style={{ padding:dimensions.sm/2,borderWidth:0.5,borderBottomColor:colors.black }}>
+                    <Text style={styles.dropdownItem}>{item.label}</Text>
                     </View>
+                  )
+                }}
+                />
+              </View>
+              <View style={{ flex:1 }}>
+              <TextInput
+                keyboardType='numeric'
+                value={newStock.stocks}
+                onChangeText={text => {
+                  setNewStock((prev) => ({ ...prev,stocks:text }))
+                  setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
+                }}     
+                mode="outlined"
+                label="Stocks"
+                cursorColor={colors.black}
+                activeOutlineColor={colors.black}
+                style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
+              />
+              </View>
+              <View style={{ flex:1 }}>
+            <TextInput
+              keyboardType='numeric'
+              value={newStock.price}
+              onChangeText={text => {
+                setNewStock((prev) => ({ ...prev,price:text }))
+                setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
+              }}      
+              mode="outlined"
+              label="Price"
+              cursorColor={colors.black}
+              activeOutlineColor={colors.black}
+              style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
+            />
+              </View>
+            <Button textColor={colors.black} mode='text' onPress={() => handleAddStock()}>Add</Button>
+            </View>
                     { errors.stocks || errors.weight || errors.price ? (<Text style={styles.errorText}>All fields required</Text>) : null }
                 </View>
         

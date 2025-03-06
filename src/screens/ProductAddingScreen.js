@@ -10,7 +10,7 @@ import React, { useRef, useState} from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
-import {Appbar, Button, Text, TextInput} from 'react-native-paper';
+import {Appbar, Button, Menu, Text, TextInput} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import { getFirestore } from '@react-native-firebase/firestore';
@@ -21,6 +21,7 @@ import firestore from '@react-native-firebase/firestore';
 import { Overlay } from '@rneui/themed';
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import useProductStore from '../store/useProductStore';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const ProductAddingScreen = () => {
   const navigation = useNavigation();
@@ -63,24 +64,6 @@ const ProductAddingScreen = () => {
       }
     });
   };
-
-  // Tax DropDown state
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(null);
-  const [items, setItems] = useState([
-    {label: 'Option 1', value: 'option1'},
-    {label: 'Option 2', value: 'option2'},
-    {label: 'Option 3', value: 'option3'},
-  ]);
-
-  // Category dropdown state
-  const [open1, setOpen1] = useState(false);
-  const [value1, setValue1] = useState(null);
-  const [items1, setItems1] = useState([
-    {label: 'Option 1', value: 'option1'},
-    {label: 'Option 2', value: 'option2'},
-    {label: 'Option 3', value: 'option3'},
-  ]);
 
   //Generating Product ID
   const [productIdLoading,setProductIdLoading] = useState(false);
@@ -254,7 +237,7 @@ const ProductAddingScreen = () => {
       return;
     }
 
-    setStocksList((prev) => [ ...prev, { weight: Number(weight), stocks: Number(stocks), price: Number(price) }]);
+    setStocksList((prev) => [ ...prev, { weight: weight.concat(` ${value}`), stocks: Number(stocks), price: Number(price) }]);
     setNewStock({ weight: '', stocks: '', price: '' });
     setErrors((prev) => ({ ...prev, weight: '', stocks: '', price: '' }));
   };
@@ -262,6 +245,14 @@ const ProductAddingScreen = () => {
   const handleDeleteStocks = (index) => {
     setStocksList((prev) => prev.filter((_,i) => i !== index));
   }
+
+  const data = [
+    { label: 'gm', value: 'gm' },
+    { label: 'lit', value: 'lit' },
+    { label: 'kg', value: 'kg' },
+  ]
+  const [value, setValue] = useState('gm');
+  console.log('value: ', value);
   return (
     <View style={styles.container}>
       
@@ -453,12 +444,11 @@ const ProductAddingScreen = () => {
             }}>
             <Text variant="titleMedium">Stocks</Text>
           </View>
-          <View style={{ flex:1,width:'100%',flexDirection:'row',alignItems:'center',gap:dimensions.sm / 2,justifyContent:'center' }}>
+          <View style={{ flex:1,width:'100%',flexDirection:'row',alignItems:'center',gap:dimensions.sm / 3,justifyContent:'center' }}>
               <View style={{ flex:1 }}>
               <TextInput
-                keyboardType='numeric'
                 value={newStock.weight}
-                onChangeText={text => {
+                onChangeText={text => { 
                   setNewStock((prev) => ({ ...prev,weight:text }))
                   setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
                 }}        
@@ -468,6 +458,30 @@ const ProductAddingScreen = () => {
                 activeOutlineColor={colors.black}
                 style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
               />
+              </View>
+              <View style={{ flex:1 }}>
+                <Dropdown
+                style={{ borderWidth:1,borderColor:colors.grayText,height:dimensions.md * 2,marginTop:dimensions.sm/2,width:'100%' }} 
+                data={data}
+                value={value}
+                placeholder={value}
+                labelField="label"
+                valueField="value"
+                selectedTextStyle={{ textAlign:'center' }}
+                onChange={(item) => {
+                  if (item.value !== value) {
+                    setValue(item.value);
+                  }
+                }}
+                placeholderStyle={{ fontSize:dimensions.sm }}
+                renderItem = {item => {
+                  return (
+                    <View style={{ padding:dimensions.sm/2,borderWidth:0.5,borderBottomColor:colors.black }}>
+                    <Text style={styles.dropdownItem}>{item.label}</Text>
+                    </View>
+                  )
+                }}
+                />
               </View>
               <View style={{ flex:1 }}>
               <TextInput
@@ -499,7 +513,7 @@ const ProductAddingScreen = () => {
               style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
             />
               </View>
-            <Button icon='plus' textColor={colors.black} mode='contained' style={{ backgroundColor:colors.lightGray }} onPress={() => handleAddStock()}>Add</Button>
+            <Button textColor={colors.black} mode='text' onPress={() => handleAddStock()}>Add</Button>
             </View>
             { errors.stocks || errors.weight || errors.price ? (<Text style={styles.errorText}>All fields required</Text>) : null }
         </View>
@@ -548,7 +562,7 @@ const ProductAddingScreen = () => {
             stocksList.map((item, index) => (
               <View key={`${index}`} style={styles.tableRow}>
                 <Text style={styles.tableCell}>{index + 1}</Text>
-                <Text style={styles.tableCell}>{item.weight}</Text>
+                <Text style={styles.tableCell}>{item.weight} </Text>
                 <Text style={styles.tableCell}>₹ {item.price}</Text>
                 <Text style={styles.tableCell}>{item.stocks}</Text>
                 <TouchableOpacity
@@ -723,210 +737,3 @@ const styles = StyleSheet.create({
     color: colors.red, // Optional: make it stand out
   },
 });
-
-
-
-
-{/* <View
-style={{flexDirection: 'row', flex: 1, gap: dimensions.sm / 2}}>
-<TextInput
-  mode="outlined"
-  label="HSN CODE"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-/>
-<TextInput
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-  mode="outlined"
-  label="SKU"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-/>
-</View>
-<View
-style={{flexDirection: 'row', flex: 1, gap: dimensions.sm / 2}}>
-<TextInput
-  mode="outlined"
-  label="Unit"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-/>
-<TextInput
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-  mode="outlined"
-  label="Purchase Cost"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-/>
-</View>
-<View
-style={{flexDirection: 'row', flex: 1, gap: dimensions.sm / 2}}>
-<TextInput
-  mode="outlined"
-  label="Mrp"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-/>
-<TextInput
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-  mode="outlined"
-  label="Price"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-/>
-</View>
-<View
-style={{flexDirection: 'row', flex: 1, gap: dimensions.sm / 2}}>
-<TextInput
-  mode="outlined"
-  label="Special Price"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-/>
-<TextInput
-  style={{flex: 1, backgroundColor: colors.pureWhite}}
-  mode="outlined"
-  label="Sort Order"
-  cursorColor={colors.black}
-  activeOutlineColor={colors.black}
-/>
-</View>
-
-{/* Menu Container */}
-{/* <View>
-<Text variant="titleSmall">Tax</Text>
-<DropDownPicker
-  open={open}
-  value={value}
-  items={items}
-  setOpen={setOpen}
-  setValue={setValue}
-  setItems={setItems}
-  placeholder="VAT"
-  placeholderStyle={{
-    color: colors.grayText,
-  }}
-  ArrowDownIconComponent={({style}) => (
-    <MaterialIcons
-      name="arrow-drop-down"
-      style={style}
-      size={dimensions.xl}
-    />
-  )}
-  ArrowUpIconComponent={({style}) => (
-    <MaterialIcons
-      name="arrow-drop-up"
-      style={style}
-      size={dimensions.xl}
-    />
-  )}
-  arrowIconStyle={{
-    width: dimensions.md * 1.75,
-    height: dimensions.md * 1.75,
-  }}
-/>
-</View> */}
-
-  {/* Inventory Container */}
-//   <View
-//   style={{
-//     flex: 1,
-//     margin: dimensions.sm / 2,
-//     backgroundColor: colors.pureWhite,
-//     borderColor: colors.lightGray,
-//     borderWidth: 1,
-//     padding: dimensions.sm,
-//   }}>
-//   <Text variant="titleMedium" style={{alignSelf: 'flex-start'}}>
-//     Inventory
-//   </Text>
-//   <View>
-//     <Text variant="titleSmall">In Stock</Text>
-//     <TextInput
-//       style={{flex: 1, backgroundColor: colors.pureWhite}}
-//       mode="outlined"
-//       placeholder="0.0"
-//       cursorColor={colors.black}
-//       activeOutlineColor={colors.black}
-//     />
-//   </View>
-//   <View
-//     style={{
-//       flexDirection: 'row',
-//       flex: 1,
-//       gap: dimensions.sm / 2,
-//       flex: 1,
-//       marginVertical: dimensions.sm / 2,
-//     }}>
-//     <View style={{flex: 1}}>
-//       <Text variant="titleSmall">Weight</Text>
-//       <TextInput
-//         style={{backgroundColor: colors.pureWhite}}
-//         mode="outlined"
-//         placeholder="0"
-//         cursorColor={colors.black}
-//         activeOutlineColor={colors.black}
-//       />
-//     </View>
-//     <View style={{flex: 1}}>
-//       <Text variant="titleSmall">Low stock Quantity</Text>
-//       <TextInput
-//         style={{backgroundColor: colors.pureWhite}}
-//         mode="outlined"
-//         placeholder="0"
-//         cursorColor={colors.black}
-//         activeOutlineColor={colors.black}
-//       />
-//     </View>
-//   </View>
-// </View>
-
-{/* Category Container */}
-{/* <View
-style={{
-  flex: 1,
-  margin: dimensions.sm / 2,
-  backgroundColor: colors.pureWhite,
-  borderColor: colors.lightGray,
-  borderWidth: 1,
-  padding: dimensions.sm,
-}}>
-<Text variant="titleMedium" style={{alignSelf: 'flex-start'}}>
-  Category
-</Text>
-
-<DropDownPicker
-  open={open1}
-  value={value1}
-  items={items1}
-  setOpen={setOpen1}
-  setValue={setValue1}
-  setItems={setItems1}
-  placeholder="Select Category"
-  placeholderStyle={{
-    color: colors.grayText,
-  }}
-  ArrowDownIconComponent={({style}) => (
-    <MaterialIcons
-      name="arrow-drop-down"
-      style={style}
-      size={dimensions.xl}
-    />
-  )}
-  ArrowUpIconComponent={({style}) => (
-    <MaterialIcons
-      name="arrow-drop-up"
-      style={style}
-      size={dimensions.xl}
-    />
-  )}
-  arrowIconStyle={{
-    width: dimensions.md * 1.75,
-    height: dimensions.md * 1.75,
-  }}
-/>
-</View> */}
