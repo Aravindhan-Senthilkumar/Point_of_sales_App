@@ -242,7 +242,8 @@ const ProductDetailsScreen = () => {
             height: dimensions.height / 4,
             margin: dimensions.xl,
             borderRadius: dimensions.sm,
-          }}>
+          }}
+          >
           <View style={{alignItems: 'center'}}>
             <AntDesign
               name="checkcircle"
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     color: colors.pureWhite,
   },
   scrollContainer: {
-    marginVertical:dimensions.md,
+    marginVertical:dimensions.sm,
     flex: 1,
   },
   imageContainer: {
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
     marginVertical: dimensions.sm,
     marginHorizontal:dimensions.xl,
     gap:dimensions.md,
-    marginTop:dimensions.xl
+    marginTop:dimensions.md
   },
   quantityButton: {
     flex:1,
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: colors.darkblue,
-    marginTop: dimensions.xl,
+    marginTop: dimensions.md,
   },
   stockHeader: {
     flexDirection: 'row',

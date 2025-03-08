@@ -1,12 +1,13 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Image,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
-import {Appbar, Button, Text, Modal, HelperText} from 'react-native-paper';
+import {Appbar, Button, Text, Modal} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
@@ -20,6 +21,11 @@ import {CheckBox, Dialog, Input} from '@rneui/themed';
 import Foundation from 'react-native-vector-icons/Foundation';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Clipboard from '@react-native-clipboard/clipboard';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import RNFS from 'react-native-fs';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import notifee, {AndroidImportance, EventType} from '@notifee/react-native';
+import FileViewer from 'react-native-file-viewer';
 
 const PaymentScreen = () => {
   const navigation = useNavigation();
@@ -39,9 +45,7 @@ const PaymentScreen = () => {
   const [transactionId, setTransactionId] = useState('');
   const [remainingAmount, setRemainingAmount] = useState(1);
   console.log('remainingAmount: ', remainingAmount);
-
   const [disableInput, setDisableInput] = useState(false);
-
   const [disableCreditInput, setDisableCreditInput] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [upiGateWayModal, setUpiGateWayModal] = useState(false);
@@ -96,65 +100,99 @@ const PaymentScreen = () => {
   };
 
   const [loading, setLoading] = useState(false);
-  const [errors,setErrors] = useState({
-    transactionId:''
+  const [errors, setErrors] = useState({
+    transactionId: '',
   });
   console.log('errors: ', errors);
+
+  const [invoiceData, setInvoiceData] = useState({});
+  console.log('invoiceData: ', invoiceData);
 
   const handlePaymentSuccess = async () => {
     setLoading(true);
     try {
       const orderRef = getFirestore().collection('orders').doc(agent.AgentID);
-
       let orderData = {
-        PaymentMethod: paymentMethod,
         products: cart,
-      }
-      let newErrors = {}
-      if(paymentMethod === 'Credit'){
-        if(creditPayValue === 'FullPayCredit'){
-          orderData.AmountPaid = { CreditAmount:Number(total),total:Number(total) }
-        }else {
-          if(partialPayMode === 'Cash'){
-            orderData.AmountPaid = { Total:Number(total),CashPaid:Number(cashAmount),CreditAmount:Number(remainingAmount) }
-          }else{
-              if(!transactionId.trim()) newErrors.transactionId = "Please enter transaction id"
-              orderData.AmountPaid = { 
-              Total:Number(total),
-              CashPaidThroughUPI:Number(upiAmount),
-              TransactionId:transactionId,
-              CreditAmount:Number(remainingAmount)
-            }
+      };
+      let newErrors = {};
+      if (paymentMethod === 'Credit') {
+        if (creditPayValue === 'FullPayCredit') {
+          orderData.PaymentMethod = 'Credit';
+          orderData.AmountPaid = {
+            CreditAmount: Number(total),
+            Total: Number(total),
+            CashPaid: Number(total),
+          };
+        } else {
+          if (partialPayMode === 'Cash') {
+            orderData.PaymentMethod = 'Partial Credit - Cash'
+            orderData.AmountPaid = {
+              Total: Number(total),
+              CashPaid: Number(cashAmount),
+              CreditAmount: Number(remainingAmount),
+            };
+          } else {
+            if (!transactionId.trim())
+              newErrors.transactionId = 'Please enter transaction id';
+              orderData.PaymentMethod = 'Partial Credit - UPI'
+              orderData.AmountPaid = {
+              Total: Number(total),
+              CashPaid: Number(upiAmount),
+              TransactionId: transactionId,
+              CreditAmount: Number(remainingAmount),
+            };
           }
         }
-      }else if(paymentMethod === 'UPI'){
-        if(!transactionId.trim()) newErrors.transactionId = "Please enter transaction id"
-        orderData.AmountPaid = { Total:Number(total),TransactionId:transactionId }
-      }else{
-        orderData.AmountPaid = { Total:Number(total) }
+      } else if (paymentMethod === 'UPI') {
+        if (!transactionId.trim())
+          newErrors.transactionId = 'Please enter transaction id';
+          orderData.PaymentMethod = 'UPI'
+          orderData.AmountPaid = {
+          Total: Number(total),
+          TransactionId: transactionId,
+          CashPaid: Number(total),
+        };
+      } else {
+        orderData.PaymentMethod = 'Cash'
+        orderData.AmountPaid = {Total: Number(total), CashPaid: Number(total)};
       }
-      if(Object.keys(newErrors).length > 0){
+      if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         return;
       }
-      await orderRef.set({
+      setInvoiceData({
         AgentID: agent.AgentID,
         AgentName: agent.AgentName,
         MobileNumber: agent.MobileNumber,
         AgentAddress: agent.Address,
-        OrdersPending: firestore.FieldValue.arrayUnion({
+        OrdersPending: {
           AmountPaid: orderData.AmountPaid,
-          orderedAt: firestore.Timestamp.now(),
           PaymentMethod: orderData.PaymentMethod,
           products: orderData.products,
-        })
-      },{merge:true});
+          orderedAt: Date.now().toString(),
+        },
+      });
+      await orderRef.set(
+        {
+          AgentID: agent.AgentID,
+          AgentName: agent.AgentName,
+          MobileNumber: agent.MobileNumber,
+          AgentAddress: agent.Address,
+          OrdersPending: firestore.FieldValue.arrayUnion({
+            AmountPaid: orderData.AmountPaid,
+            orderedAt: Date.now().toString(),
+            PaymentMethod: orderData.PaymentMethod,
+            products: orderData.products,
+          }),
+        },
+        {merge: true},
+      );
       setPaymentGatewayVisible(false);
       setCreditGateWayModal(false);
       setUpiGateWayModal(false);
-      clearCart();
       setOrderSuccessVisible(true);
-      return ;
+      return;
     } catch (error) {
       console.log('Error in internal server while payment processing:', error);
       alert('Failed to process payment. Please try again.');
@@ -163,13 +201,18 @@ const PaymentScreen = () => {
     }
   };
 
-  const handleCloseSuccess = () => {
-    setPaymentConfirmation(true);
-    setOrderSuccessVisible(false);
-    navigation.goBack();
+  const handleCloseSuccess = async () => {
+    try {
+      setpdfGenerationLoading(true);
+      await generatePdf();
+      setPaymentConfirmation(true);
+      clearCart();
+      setOrderSuccessVisible(false);
+      navigation.goBack();
+    } catch (error) {
+      console.log('Error while making order', error);
+    }
   };
-
-  
 
   const handleDisableInput = text => {
     if (Number(text) < total) {
@@ -182,7 +225,6 @@ const PaymentScreen = () => {
     }
   };
 
-  
   const handleDisableCreditInput = text => {
     if (Number(text) < total) {
       setDisableCreditInput(false);
@@ -193,8 +235,6 @@ const PaymentScreen = () => {
       }, 700);
     }
   };
-  
-  
 
   const handleAlertVisibleFunction = () => {
     setAlertVisible(true);
@@ -203,11 +243,229 @@ const PaymentScreen = () => {
     }, 1000);
   };
 
-
   const copyToClipboard = async () => {
     Clipboard.setString(upiId);
     await Clipboard.getString();
   };
+
+  const data = invoiceData;
+  console.log('data: ', data);
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true; // Only request for Android devices
+
+    let permissionStatus = await check(
+      PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
+    );
+    console.log('Initial permission status:', permissionStatus);
+
+    if (permissionStatus === RESULTS.DENIED) {
+      // Request permission if it's denied
+      permissionStatus = await request(
+        PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
+      );
+      console.log('Permission after request:', permissionStatus);
+    }
+
+    if (permissionStatus === RESULTS.GRANTED) {
+      console.log('Storage permission granted');
+      return true;
+    } else if (permissionStatus === RESULTS.BLOCKED) {
+      console.log(
+        'Storage permission blocked. Ask user to enable it manually.',
+      );
+      // You may want to open the settings page here
+    } else if (permissionStatus === RESULTS.UNAVAILABLE) {
+      console.log('Storage permission unavailable on this device.');
+    }
+
+    console.log('Storage permission denied');
+    return false;
+  };
+  const [pdfGenerationLoading, setpdfGenerationLoading] = useState(false);
+  const generatePdf = async () => {
+    const today = new Date();
+    const formattedDate =
+      today.getDate().toString().padStart(2, '0') +
+      '/' +
+      (today.getMonth() + 1).toString().padStart(2, '0') +
+      '/' +
+      today.getFullYear();
+    console.log(formattedDate);
+    const uid = Math.floor(Math.random() * 90000 + 10000).toString();
+    const safeFormattedDate = formattedDate.replace(/\//g, '-');
+    const ordersHtml = cart
+      .map(
+        item => `<tr style="border-bottom: 1px solid #ddd;">
+    <td style="padding: 10px;">${item.productName}</td>
+    <td style="padding: 10px;">₹ ${item.price}</td>
+    <td style="padding: 10px;">${item.quantity}</td>
+    <td style="padding: 10px;">₹ ${item.price * item.quantity}</td>
+    </tr>`,
+      )
+      .join('');
+    const htmlContent = `<html>
+      <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+      <div style="max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ddd; padding-bottom: 20px;">
+          <div>
+              <img src="../images/avatar.png" width="150px" alt="Logo">
+          </div>
+          <div style="text-align: right;">
+              <h1 style="margin: 0; color: #333;">UK Info Tech</h1>
+              <p style="margin: 5px 0; font-size: 16px;">5681, Santhanathapuram 7th Street,</p>
+              <p style="margin: 5px 0; font-size: 16px;">Pudukkottai-622001</p>
+              <p style="margin: 5px 0; font-size: 16px;"><strong>GSTIN:</strong> ......................</p>
+              <p style="margin: 5px 0; font-size: 16px;"><strong>MSME No:</strong> ......................</p>
+          </div>
+      </div>
+      <div style="background-color: #eee; padding: 15px; margin-top: 20px; border-radius: 5px;">
+          <h2 style="margin: 0; color: #333;">Tax Invoice #UK/2025/${uid}</h2>
+          <p style="margin: 5px 0; font-size: 18px;"><strong>Invoice Date:</strong> ${formattedDate}</p>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+          <div>
+              <h3 style="margin-bottom: 10px; color: #333;">Invoiced To *</h3>
+              <p style="margin: 5px 0; font-size: 18px;"><strong>Agent ID:</strong> ${
+                data.AgentID
+              }</p>
+              <p style="margin: 5px 0; font-size: 18px;"><strong>Agent Name:</strong> ${
+                data.AgentName
+              }</p>
+              <p style="margin: 5px 0; font-size: 18px;"><strong>Address:</strong> ${
+                data.AgentAddress
+              }</p>
+              <p style="margin: 5px 0; font-size: 18px;"><strong>GSTIN Number:</strong> -</p>
+          </div>
+          <div>
+              <h1 style="font-size: 80px; color: green; opacity: 0.8;">PAID</h1>
+          </div>
+      </div>
+      <table style="width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 18px;">
+          <thead>
+              <tr style="background-color: #222; color: white; text-align: left;">
+                  <th style="padding: 10px; width: 40%;">Description</th>
+                  <th style="padding: 10px; width: 20%;">Price</th>
+                  <th style="padding: 10px; width: 20%;">Quantity</th>
+                  <th style="padding: 10px; width: 20%;">Total</th>
+              </tr>
+          </thead>
+          <tbody>
+              ${ordersHtml}
+          </tbody>
+          <tfoot>
+              <tr style="background-color: #f4f4f4;">
+                  <td colspan="3" style="text-align: right; padding: 10px;"><strong>Amount paid:</strong></td>
+                  <td style="padding: 10px;"><strong>₹ ${
+                    data.OrdersPending.AmountPaid.CashPaid
+                  }</strong></td>
+              </tr>
+              <tr style="background-color: #f4f4f4;">
+                  <td colspan="3" style="text-align: right; padding: 10px;"><strong>Tax</strong></td>
+                  <td style="padding: 10px;"><strong>₹ ${0}</strong></td>
+              </tr>
+              <tr style="background-color: #f4f4f4;">
+                  <td colspan="3" style="text-align: right; padding: 10px;"><strong>Credit</strong></td>
+                  <td style="padding: 10px;"><strong>₹ ${
+                    data.OrdersPending.AmountPaid.CreditAmount
+                      ? data.OrdersPending.AmountPaid.CreditAmount
+                      : 0
+                  }</strong></td>
+              </tr>
+              <tr3 style="background-color: #322; color: white;">
+                  <td colspan="3" style="text-align: right; padding: 10px;"><strong>Total</strong></td>
+                  <td style="padding: 10px;"><strong>₹ ${
+                    data.OrdersPending.AmountPaid.Total
+                  }</strong></td>
+              </tr3
+          </tfoot>
+      </table>
+
+      <div>
+      <p style="margin: 5px 0; font-size: 18px;"><strong>Transactions</strong></p>
+      <table style="width: 100%; margin-top: 5px; border-collapse: collapse; font-size: 18px;">
+       <thead>
+              <tr style="background-color: #222; color: white; text-align: left;">
+                  <th style="padding: 10px; width: 25%;">Transaction Date</th>
+                  <th style="padding: 10px; width: 25%;">Payment Method</th>
+                  <th style="padding: 10px; width: 25%;">Transaction ID</th>
+                  <th style="padding: 10px; width: 25%;">Amount</th>
+              </tr>
+        </thead>
+        <tbody>
+            <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px;">${formattedDate}</td>
+            <td style="padding: 10px;">${
+              data.OrdersPending.PaymentMethod
+            }</td>
+            <td style="padding: 10px;">${
+              data.OrdersPending.AmountPaid.TransactionId
+                ? data.OrdersPending.AmountPaid.TransactionId
+                : '-'
+            }</td>
+            <td style="padding: 10px;">₹ ${
+                    data.OrdersPending.AmountPaid.CashPaid
+                  }</td>
+            </tr>
+        </tbody>
+      </table>
+      </div>
+      <div style="text-align: center; margin-top: 10px; padding: 10px; background-color: #f4f4f4; border-radius: 5px;">
+          <h3 style="margin: 0;">*By accepting this invoice, you agree to our Terms of Service and Privacy Policy.</h3>
+      </div>
+      </div>
+      </body>
+      </html>`;
+
+    const permissionGranted = await requestStoragePermission();
+    console.log('permissionGranted: ', permissionGranted);
+    if (!permissionGranted) {
+      console.log('Permission denied');
+      return;
+    }
+
+    const options = {
+      html: htmlContent,
+      fileName: `invoice_${uid}_${data.OrdersPending.PaymentMethod}-${safeFormattedDate}`,
+      directory: 'Documents',
+    };
+    try {
+      const file = await RNHTMLtoPDF.convert(options);
+      console.log(file.filePath);
+      const invoiceName = `invoice_${uid}_${data.OrdersPending.PaymentMethod}-${safeFormattedDate}.pdf`;
+      const newPath = `${RNFS.DownloadDirectoryPath}/${invoiceName}`;
+      console.log('newPath: ', newPath);
+      await RNFS.moveFile(file.filePath, newPath);
+      await showNotification(newPath, invoiceName);
+    } catch (error) {
+      console.log('Error while generating Invoice PDF', error);
+    } finally {
+      setpdfGenerationLoading(false);
+    }
+  };
+
+  const showNotification = async (filePath, invoiceName) => {
+    await notifee.requestPermission();
+
+    const channelId = await notifee.createChannel({
+      id: 'default',
+      name: 'Default Channel',
+      importance: AndroidImportance.HIGH,
+    });
+
+    await notifee.displayNotification({
+      title: 'Invoice Downloaded....Click to Open',
+      body: invoiceName,
+      android: {
+        channelId,
+        pressAction: {
+          id: 'open-invoice',
+        },
+      },
+      data: {filePath},
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* Custom Header */}
@@ -369,38 +627,42 @@ const PaymentScreen = () => {
               <View>
                 <Image source={require('../images/qrsample.png')} />
               </View>
-                <TouchableOpacity style={{
+              <TouchableOpacity
+                style={{
                   alignSelf: 'center',
                   borderColor: colors.lightGray,
                   borderWidth: 1,
                   paddingHorizontal: dimensions.md / 2,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',             
-                  gap: dimensions.sm / 2}} onPress={() => copyToClipboard()}>
+                  justifyContent: 'center',
+                  gap: dimensions.sm / 2,
+                }}
+                onPress={() => copyToClipboard()}>
                 <Text style={{fontSize: dimensions.sm}}>{upiId}</Text>
-                  <MaterialCommunityIcons
-                    name="content-copy"
-                    size={dimensions.sm}
-                  />
-                </TouchableOpacity>
-
+                <MaterialCommunityIcons
+                  name="content-copy"
+                  size={dimensions.sm}
+                />
+              </TouchableOpacity>
             </View>
             <View
               style={{width: dimensions.width / 2, marginTop: dimensions.sm}}>
               <Input
-              value={transactionId}
-              onChangeText={(text) => {
-                setTransactionId(text)
-                setErrors({transactionId:''})
-              }}
-              style={{height: dimensions.md, fontSize: dimensions.sm}}
-              placeholder="Enter transaction ID"
-              containerStyle={{ marginBottom:-dimensions.md }}
+                value={transactionId}
+                onChangeText={text => {
+                  setTransactionId(text);
+                  setErrors({transactionId: ''});
+                }}
+                style={{height: dimensions.md, fontSize: dimensions.sm}}
+                placeholder="Enter transaction ID"
+                containerStyle={{marginBottom: -dimensions.md}}
               />
-              {
-                errors.transactionId && (<Text style={{ color:'red',marginBottom:dimensions.sm/2 }}>{errors.transactionId}</Text>)
-              }
+              {errors.transactionId && (
+                <Text style={{color: 'red', marginBottom: dimensions.sm / 2}}>
+                  {errors.transactionId}
+                </Text>
+              )}
             </View>
           </>
           <Button
@@ -417,8 +679,8 @@ const PaymentScreen = () => {
           <Button
             mode="outlined"
             onPress={() => {
-              setUpiGateWayModal(false)
-              setErrors({ transactionId:'' })
+              setUpiGateWayModal(false);
+              setErrors({transactionId: ''});
             }}
             style={styles.modalCancelButton}
             textColor={colors.black}>
@@ -458,8 +720,8 @@ const PaymentScreen = () => {
                 size={dimensions.md}
                 checked={creditPayValue === 'FullPayCredit'}
                 onPress={() => {
-                  setCreditPayValue('FullPayCredit')
-                  setErrors({ transactionId:'' })
+                  setCreditPayValue('FullPayCredit');
+                  setErrors({transactionId: ''});
                 }}
                 title="Full Pay Credit"
                 checkedIcon="dot-circle-o"
@@ -471,8 +733,8 @@ const PaymentScreen = () => {
                 size={dimensions.md}
                 checked={creditPayValue === 'PartialPayValue'}
                 onPress={() => {
-                  setCreditPayValue('PartialPayValue')
-                  setErrors({ transactionId:'' })
+                  setCreditPayValue('PartialPayValue');
+                  setErrors({transactionId: ''});
                 }}
                 title="Partial Pay Credit"
                 checkedIcon="dot-circle-o"
@@ -484,128 +746,131 @@ const PaymentScreen = () => {
             {creditPayValue === 'PartialPayValue' && (
               <View style={{alignSelf: 'center'}}>
                 <View>
-                <View style={{flexDirection: 'row',marginLeft:dimensions.md}}>
-                  <CheckBox
-                    checked={partialPayMode === 'Cash'}
-                    onPress={() => {
-                      setPartialPayMode('Cash');
-                      setCashAmount(Math.max(total - 1).toString());
-                      setRemainingAmount(1);
-                      setErrors({ transactionId:'' })
-                    }}
-                    checkedColor={colors.orange}
-                    size={dimensions.md}
-                    containerStyle={{paddingVertical: 0}}
-                    title="Cash"
-                    checkedIcon="dot-circle-o"
-                    uncheckedIcon="circle-o"
+                  <View
+                    style={{flexDirection: 'row', marginLeft: dimensions.md}}>
+                    <CheckBox
+                      checked={partialPayMode === 'Cash'}
+                      onPress={() => {
+                        setPartialPayMode('Cash');
+                        setCashAmount(Math.max(total - 1).toString());
+                        setRemainingAmount(1);
+                        setErrors({transactionId: ''});
+                      }}
+                      checkedColor={colors.orange}
+                      size={dimensions.md}
+                      containerStyle={{paddingVertical: 0}}
+                      title="Cash"
+                      checkedIcon="dot-circle-o"
+                      uncheckedIcon="circle-o"
                     />
-                  <CheckBox
-                    checked={partialPayMode === 'UPI'}
-                    onPress={() => {
-                      setPartialPayMode('UPI');
-                      setUpiAmount(Math.max(total - 1).toString());
-                      setRemainingAmount(1);
-                    }}
-                    checkedColor={colors.orange}
-                    size={dimensions.md}
-                    containerStyle={{paddingVertical: 0}}
-                    title="UPI"
-                    checkedIcon="dot-circle-o"
-                    uncheckedIcon="circle-o"
+                    <CheckBox
+                      checked={partialPayMode === 'UPI'}
+                      onPress={() => {
+                        setPartialPayMode('UPI');
+                        setUpiAmount(Math.max(total - 1).toString());
+                        setRemainingAmount(1);
+                      }}
+                      checkedColor={colors.orange}
+                      size={dimensions.md}
+                      containerStyle={{paddingVertical: 0}}
+                      title="UPI"
+                      checkedIcon="dot-circle-o"
+                      uncheckedIcon="circle-o"
                     />
+                  </View>
                 </View>
-                </View>
-                    
+
                 {partialPayMode === 'Cash' && (
                   <View style={{marginVertical: dimensions.md}}>
-                    <View style={{
-                      flexDirection: 'row', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      borderColor:colors.lightGray,
-                      borderWidth:1,
-                      paddingHorizontal: dimensions.md / 2,
-                      paddingVertical: dimensions.sm / 2,
-                      borderRadius:dimensions.sm/2,
-                      }}>
-                    <View style={{ gap:dimensions.xl }}>
-                      <Text
-                        style={{
-                          fontSize: dimensions.sm,
-                          fontFamily: fonts.regular,
-                        }}>
-                        Pay Amount:
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: dimensions.sm,
-                          fontFamily: fonts.regular,
-                        }}>
-                        Credit:
-                      </Text>    
-                    </View>
-                    
                     <View
                       style={{
-                        width: dimensions.width / 3,
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderColor: colors.lightGray,
+                        borderWidth: 1,
+                        paddingHorizontal: dimensions.md / 2,
+                        paddingVertical: dimensions.sm / 2,
+                        borderRadius: dimensions.sm / 2,
                       }}>
-                      <Input
-                        keyboardType="number-pad"
-                        disabled={disableInput}
-                        value={cashAmount.toString()}
-                        onChangeText={text => {
-                          handleDisableInput(text);
-                          if (Number(text) > total) {
-                            setCashAmount(Math.max(total - 1).toString());
-                            setRemainingAmount(1);
-                            return;
-                          }
-                          setCashAmount(text);
-                          setRemainingAmount(total - Number(text));
-                        }}
-                        placeholder="Cash"
-                        containerStyle={{height: dimensions.xl * 1.5}}
-                        style={{fontSize: dimensions.sm}}
+                      <View style={{gap: dimensions.xl}}>
+                        <Text
+                          style={{
+                            fontSize: dimensions.sm,
+                            fontFamily: fonts.regular,
+                          }}>
+                          Pay Amount:
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: dimensions.sm,
+                            fontFamily: fonts.regular,
+                          }}>
+                          Credit:
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{
+                          width: dimensions.width / 3,
+                        }}>
+                        <Input
+                          keyboardType="number-pad"
+                          disabled={disableInput}
+                          value={cashAmount.toString()}
+                          onChangeText={text => {
+                            handleDisableInput(text);
+                            if (Number(text) > total) {
+                              setCashAmount(Math.max(total - 1).toString());
+                              setRemainingAmount(1);
+                              return;
+                            }
+                            setCashAmount(text);
+                            setRemainingAmount(total - Number(text));
+                          }}
+                          placeholder="Cash"
+                          containerStyle={{height: dimensions.xl * 1.5}}
+                          style={{fontSize: dimensions.sm}}
                         />
-                      <Input
-                        keyboardType="number-pad"
-                        disabled={disableCreditInput}
-                        onChangeText={text => {
-                          handleDisableCreditInput(text);
-                          if (Number(text) > total) {
-                            setRemainingAmount(Math.max(total - 1).toString());
-                            setCashAmount(1);
-                            return;
-                          }
-                          setRemainingAmount(text);
-                          setCashAmount(total - Number(text));
-                        }}
-                        value={remainingAmount}
-                        placeholder={remainingAmount.toString()}
-                        containerStyle={{height: dimensions.xl * 1.5}}
-                        style={{fontSize: dimensions.sm}}
-                      />
+                        <Input
+                          keyboardType="number-pad"
+                          disabled={disableCreditInput}
+                          onChangeText={text => {
+                            handleDisableCreditInput(text);
+                            if (Number(text) > total) {
+                              setRemainingAmount(
+                                Math.max(total - 1).toString(),
+                              );
+                              setCashAmount(1);
+                              return;
+                            }
+                            setRemainingAmount(text);
+                            setCashAmount(total - Number(text));
+                          }}
+                          value={remainingAmount}
+                          placeholder={remainingAmount.toString()}
+                          containerStyle={{height: dimensions.xl * 1.5}}
+                          style={{fontSize: dimensions.sm}}
+                        />
+                      </View>
                     </View>
-                  </View>
                   </View>
                 )}
 
                 {partialPayMode === 'UPI' && (
                   <View style={{marginVertical: dimensions.md}}>
-
                     {/* Qr code Container */}
                     <View style={{alignSelf: 'center'}}>
                       <Image
-                          source={require('../images/qrsample.png')}
-                          style={{
-                            height: dimensions.xl * 4,
-                            width: dimensions.xl * 4,
-                            resizeMode: 'cover',
-                            alignSelf:'center'
-                          }}
-                        />
-                        <TouchableOpacity
+                        source={require('../images/qrsample.png')}
+                        style={{
+                          height: dimensions.xl * 4,
+                          width: dimensions.xl * 4,
+                          resizeMode: 'cover',
+                          alignSelf: 'center',
+                        }}
+                      />
+                      <TouchableOpacity
                         onPress={() => copyToClipboard()}
                         style={{
                           borderColor: colors.lightGray,
@@ -616,64 +881,64 @@ const PaymentScreen = () => {
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: dimensions.sm / 2,
-                          marginBottom:dimensions.sm,
+                          marginBottom: dimensions.sm,
                         }}>
                         <Text style={{fontSize: dimensions.sm}}>{upiId}</Text>
-                          <MaterialCommunityIcons
-                            name="content-copy"
-                            size={dimensions.sm}
-                          />
+                        <MaterialCommunityIcons
+                          name="content-copy"
+                          size={dimensions.sm}
+                        />
                       </TouchableOpacity>
-                      </View>
-                      <View style={{
-                      flexDirection: 'row', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      borderColor:colors.lightGray,
-                      borderWidth:1,
-                     paddingHorizontal: dimensions.md / 2,
-                      paddingVertical: dimensions.sm / 2,
-                      borderRadius:dimensions.sm/2
-                    }}>
-                      
-                    <View style={{ gap:dimensions.md * 1.25 }}>
-                    <Text
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderColor: colors.lightGray,
+                        borderWidth: 1,
+                        paddingHorizontal: dimensions.md / 2,
+                        paddingVertical: dimensions.sm / 2,
+                        borderRadius: dimensions.sm / 2,
+                      }}>
+                      <View style={{gap: dimensions.md * 1.25}}>
+                        <Text
                           style={{
                             fontSize: dimensions.sm,
                             fontFamily: fonts.regular,
                           }}>
                           UTR Id:
                         </Text>
-                     <Text
-                      style={{
-                        fontSize: dimensions.sm,
-                        fontFamily: fonts.regular,
+                        <Text
+                          style={{
+                            fontSize: dimensions.sm,
+                            fontFamily: fonts.regular,
+                          }}>
+                          Pay Amount:
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: dimensions.sm,
+                            fontFamily: fonts.regular,
+                          }}>
+                          Credit:
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{
+                          width: dimensions.width / 3,
                         }}>
-                       Pay Amount:
-                      </Text>
-                      <Text
-                      style={{
-                        fontSize: dimensions.sm,
-                        fontFamily: fonts.regular,
-                      }}>
-                      Credit:
-                    </Text>    
-                  </View>
-                  
-                  <View
-                    style={{
-                      width: dimensions.width / 3,
-                    }}>
-                          <Input
+                        <Input
                           value={transactionId}
-                          onChangeText={(text)=>{
-                            setTransactionId(text)
-                            setErrors({ transactionId:'' })
+                          onChangeText={text => {
+                            setTransactionId(text);
+                            setErrors({transactionId: ''});
                           }}
                           placeholder="Transaction ID"
                           containerStyle={{height: dimensions.xl * 1.5}}
                           style={{fontSize: dimensions.sm}}
-                          />
+                        />
                         <Input
                           keyboardType="number-pad"
                           disabled={disableInput}
@@ -691,7 +956,7 @@ const PaymentScreen = () => {
                           placeholder="Amount Sent"
                           containerStyle={{height: dimensions.xl * 1.5}}
                           style={{fontSize: dimensions.sm}}
-                          />
+                        />
                         <Input
                           keyboardType="number-pad"
                           disabled={disableCreditInput}
@@ -712,17 +977,18 @@ const PaymentScreen = () => {
                           containerStyle={{height: dimensions.xl * 1.5}}
                           style={{fontSize: dimensions.sm}}
                         />
+                      </View>
+                    </View>
                   </View>
-                </View>
-                </View>
                 )}
-                  
               </View>
             )}
           </View>
-          {
-                errors.transactionId && (<Text style={{ color:'red',marginBottom:dimensions.sm/2 }}>{errors.transactionId}</Text>)
-              }
+          {errors.transactionId && (
+            <Text style={{color: 'red', marginBottom: dimensions.sm / 2}}>
+              {errors.transactionId}
+            </Text>
+          )}
           <View style={{marginBottom: dimensions.md}}>
             <Button
               mode="contained"
@@ -738,8 +1004,8 @@ const PaymentScreen = () => {
             <Button
               mode="outlined"
               onPress={() => {
-                setCreditGateWayModal(false)
-                setErrors({ transactionId:'' })
+                setCreditGateWayModal(false);
+                setErrors({transactionId: ''});
               }}
               style={styles.modalCancelButton1}
               textColor={colors.black}>
@@ -755,9 +1021,15 @@ const PaymentScreen = () => {
         onDismiss={() => setPaymentGatewayVisible(false)}
         contentContainerStyle={styles.modalContent}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Payment Gateway</Text>
-          <Text style={styles.modalText}>
-            Processing payment of ₹ {total} via {paymentMethod}...
+          <Text style={[styles.modalTitle, {marginBottom: dimensions.sm}]}>
+            Payment Gateway
+          </Text>
+          <Text style={[styles.modalText, {marginBottom: dimensions.sm}]}>
+            Processing payment of{' '}
+            <Text style={[styles.modalText, {fontFamily: fonts.bold}]}>
+              ₹{total}
+            </Text>{' '}
+            via {paymentMethod}...
           </Text>
           <Button
             mode="contained"
@@ -791,13 +1063,17 @@ const PaymentScreen = () => {
             size={dimensions.width / 4}
             color="green"
           />
-          <Text style={styles.modalTitle}>Order Successful!</Text>
-          <Text style={styles.modalText}>
+          <Text
+            style={[styles.modalTitle, {marginVertical: dimensions.sm / 2}]}>
+            Order Successful!
+          </Text>
+          <Text style={[styles.modalText, {marginBottom: dimensions.sm / 2}]}>
             Your order has been placed successfully.
           </Text>
           <Button
+            loading={pdfGenerationLoading}
             mode="contained"
-            onPress={handleCloseSuccess}
+            onPress={pdfGenerationLoading ? null : handleCloseSuccess}
             style={styles.modalButton}
             textColor={colors.pureWhite}>
             OK

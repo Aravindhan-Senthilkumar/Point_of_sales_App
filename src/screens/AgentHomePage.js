@@ -13,7 +13,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import useAuthStore from '../store/useAuthStore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import useCartStore from '../store/useCartStore';
-import { ActivityIndicator, Button, Modal } from 'react-native-paper';
+import { ActivityIndicator, Badge, Button, Modal } from 'react-native-paper';
 import BackgroundService from 'react-native-background-actions';
 import useBackupStore from '../store/useBackupStore';
 
@@ -266,6 +266,13 @@ const AgentHomePage = () => {
         size={30}
         color="black"
       />
+      {
+          cart.length > 0 && (
+        <Badge size={dimensions.sm} style={{ right:dimensions.sm * 4,top:dimensions.md / 2,position:'absolute' }}>
+          {cart.length}
+        </Badge>
+          )
+        }
       <Text style={styles.AdminDashboardText}>Cart</Text>
     </TouchableOpacity>
     <TouchableOpacity

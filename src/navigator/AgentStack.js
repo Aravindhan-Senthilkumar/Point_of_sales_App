@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { NavigationContainer } from '@react-navigation/native'
 import AgentHomePage from '../screens/AgentHomePage';
@@ -7,10 +7,32 @@ import ProductDetailsScreen from '../screens/ProductDetailsScreen';
 import AgentProductsListScreen from '../screens/AgentProductsListScreen';
 import CartScreen from '../screens/CartScreen';
 import PaymentScreen from '../screens/PaymentScreen';
+import InvoiceGenerationScreen from '../screens/InvoiceGenerationScreen';
+import FileViewer from 'react-native-file-viewer';
+import notifee, {EventType} from '@notifee/react-native';
 
 const Stack = createNativeStackNavigator();
 
 const AgentStack = () => {
+
+    useEffect(() => {
+        // Handle foreground notifications
+        const unsubscribe = notifee.onForegroundEvent(async ({ type,detail }) => {
+            if(type === EventType.PRESS){
+                const filePath = detail.notification?.data?.filePath
+                if(filePath){
+                    try{
+                        await FileViewer.open(filePath,{ showOpenWithDialog:true })
+                        console.log("Opening the downloaded pdf invoice successfully")
+                    }catch(error){
+                        console.log("Error while opening invoice",error)
+                    }
+                }
+            }
+        })
+        return () => unsubscribe();
+    }, []);
+    
     return (
         <NavigationContainer>
         <Stack.Navigator initialRouteName='AgentHomePage' screenOptions={{ headerShown:false }}>
@@ -20,6 +42,7 @@ const AgentStack = () => {
         <Stack.Screen name='AgentProductsListScreen' component={AgentProductsListScreen}/>
         <Stack.Screen name='PaymentScreen' component={PaymentScreen}/>
         <Stack.Screen name='CartScreen' component={CartScreen}/>
+        <Stack.Screen name='InvoiceGenerationScreen' component={InvoiceGenerationScreen}/>
         </Stack.Navigator>
         </NavigationContainer>
     )
