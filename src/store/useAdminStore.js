@@ -12,7 +12,7 @@ const useAdminStore = create(
     }),
     {
         name:'admin-storage',
-        storage:createJSONStorage(() => AsyncStorage)
+        storage:createJSONStorage(() => AsyncStorage),
     }
 ))
 

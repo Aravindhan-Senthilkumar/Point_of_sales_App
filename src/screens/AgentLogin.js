@@ -45,7 +45,7 @@ const AgentLogin = () => {
   const [logoUri, setLogoUri] = useState();
 
   //Zustand Store
-  const { setAgentData,agent } = useAgentStore();
+  const { setAgentData,agent,setAdminLogoUri } = useAgentStore();
 
   const { setCartFromBackup,cart } = useCartStore();
   console.log('cart: ', cart);
@@ -66,7 +66,8 @@ const AgentLogin = () => {
     setLogoLoading(true)
     try{
       const adminLogo = await getFirestore().collection('admin').doc('admin').get();
-      setLogoUri(adminLogo.exists ? adminLogo.data().AdminLogoUri : null)
+      setLogoUri(adminLogo.exists ? adminLogo.data().AdminLogoUri : null);
+      setAdminLogoUri(adminLogo.data().AdminLogoUri);
     }catch(error){
      setLogoUri(null) 
     }finally{
@@ -76,7 +77,7 @@ const AgentLogin = () => {
 
   //Fetching Admin LOGO 
   useEffect(() => {
-    fetchAdminLogo()
+    fetchAdminLogo();
   },[fetchAdminLogo])
 
 

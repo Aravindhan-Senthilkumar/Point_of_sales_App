@@ -30,6 +30,21 @@ const AgentStack = () => {
                 }
             }
         })
+
+        notifee.onBackgroundEvent(async ({ type,detail }) => {
+            if(type === EventType.PRESS){
+                const filePath = detail.notification?.data?.filePath
+                if(filePath){
+                    try{
+                        await FileViewer.open(filePath,{ showOpenWithDialog:true })
+                        console.log("Opening the downloaded pdf invoice successfully")
+                    }catch(error){
+                        console.log("Error while opening invoice",error)
+                    }
+                }
+            }
+        })
+        
         return () => unsubscribe();
     }, []);
     

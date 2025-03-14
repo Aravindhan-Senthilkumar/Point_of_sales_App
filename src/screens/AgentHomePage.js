@@ -1,4 +1,4 @@
-import {StyleSheet, View, Text, TouchableOpacity, Alert} from 'react-native';
+import {StyleSheet, View, Text, TouchableOpacity, Alert, Platform, PermissionsAndroid} from 'react-native';
 import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -16,6 +16,7 @@ import useCartStore from '../store/useCartStore';
 import { ActivityIndicator, Badge, Button, Modal } from 'react-native-paper';
 import BackgroundService from 'react-native-background-actions';
 import useBackupStore from '../store/useBackupStore';
+import { PERMISSIONS, request } from 'react-native-permissions';
 
 const AgentHomePage = () => {
   const navigation = useNavigation();
@@ -131,6 +132,16 @@ const AgentHomePage = () => {
       });
     };
 
+  const requestAndroid15NotificationPermissions = async () => {
+    if(Platform.OS === 'android' && Platform.Version >= 33){
+      const granted = await request(PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS))
+      console.log("The notification requests has sent")
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    console.log("Android version is <= 33")
+    return true;
+  }
+
   const options = {
     taskName: 'GoogleDriveBackup',
     taskTitle: 'Backup in Progress',
@@ -143,11 +154,20 @@ const AgentHomePage = () => {
     }, // Replace with your app icon
     color: '#ff0000', // Notification color (e.g., red)
     parameters: { interval: 86400000 }, // 1 second for testing, use 86400000 for 24 hours in production
-    foreground: true, // Force foreground mode for Android 15
+    foreground: true, // **This is necessary for Android 15+**
+  allowExecutionInForeground: true, // **Ensures execution in foreground**
     };
 
     useEffect(() => {
       const startBackgroundTask = async () => {
+        const hasPermission = await requestAndroid15NotificationPermissions();
+        console.log('hasPermission: ', hasPermission);
+
+        if(!hasPermission){
+          console.log("Notification permission denied.");
+          return;
+        }
+
         const now = new Date().getTime();
         const twentyFourHours = 24 * 60 * 60 * 1000;
         if (!BackgroundService.isRunning() && (!lastBackedUpTime || now - lastBackedUpTime >= twentyFourHours)) {

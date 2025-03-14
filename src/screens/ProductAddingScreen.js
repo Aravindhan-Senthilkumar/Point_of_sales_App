@@ -6,29 +6,29 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import React, { useRef, useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import {Appbar, Button, Menu, Text, TextInput} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import { getFirestore } from '@react-native-firebase/firestore';
+import {getFirestore} from '@react-native-firebase/firestore';
 import Barcode from '@kichiyaki/react-native-barcode-generator';
-import { captureRef } from 'react-native-view-shot';
-import { firebase } from '@react-native-firebase/storage';
+import {captureRef} from 'react-native-view-shot';
+import {firebase} from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
-import { Overlay } from '@rneui/themed';
-import AntDesign from 'react-native-vector-icons/AntDesign'
+import {Overlay} from '@rneui/themed';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import useProductStore from '../store/useProductStore';
-import { Dropdown } from 'react-native-element-dropdown';
+import {Dropdown} from 'react-native-element-dropdown';
 
 const ProductAddingScreen = () => {
   const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
   //State Updates
   const [imageUri, setImageUri] = useState(null);
-  
+
   //Capture photo function
   const handleCapturePhoto = () => {
     const options = {
@@ -66,196 +66,217 @@ const ProductAddingScreen = () => {
   };
 
   //Generating Product ID
-  const [productIdLoading,setProductIdLoading] = useState(false);
-  const [productId,setProductId] = useState('');
+  const [productIdLoading, setProductIdLoading] = useState(false);
+  const [productId, setProductId] = useState('');
 
   const fetchLastProductId = async () => {
-    setProductIdLoading(true)
-      const counterRef = await getFirestore().collection('metadata').doc('product_counter');
-      try{
-        const counterDoc = await counterRef.get()
-        if(counterDoc.exists){
-          const lastId = await counterDoc.data().lastProductId + 1;
-          setProductId(lastId);
-        }else {
-          await counterRef.set({ lastProductId:100 });
-          setProductId(101)
-        }
-      }catch(error){
-      console.log("Error in internal server while fetching Last product Id",error)
-    }finally{
-      setProductIdLoading(false)
+    setProductIdLoading(true);
+    const counterRef = await getFirestore()
+      .collection('metadata')
+      .doc('product_counter');
+    try {
+      const counterDoc = await counterRef.get();
+      if (counterDoc.exists) {
+        const lastId = (await counterDoc.data().lastProductId) + 1;
+        setProductId(lastId);
+      } else {
+        await counterRef.set({lastProductId: 100});
+        setProductId(101);
+      }
+    } catch (error) {
+      console.log(
+        'Error in internal server while fetching Last product Id',
+        error,
+      );
+    } finally {
+      setProductIdLoading(false);
     }
-  }
+  };
 
   //Barcode Generation
   const barcodeRef = useRef();
-  const [inputValue,setInputValue] = useState(null);
+  const [inputValue, setInputValue] = useState(null);
   const generateRandomBarcode = () => {
-    const barCode = Math.floor(Math.random() * 90000000000000 + 10000000000000).toString()
+    const barCode = Math.floor(
+      Math.random() * 90000000000000 + 10000000000000,
+    ).toString();
     setInputValue(barCode);
-  }
+  };
 
   //Errors
-  const [errors,setErrors] = useState({
+  const [errors, setErrors] = useState({
     productName: '',
     description: '',
-    category:'',
-    brandName:'',
+    category: '',
+    brandName: '',
     weight: '',
     stocks: '',
     price: '',
   });
 
   //HandleLogin
-  const [productName,setProductName] = useState('');
-  const [description,setDescription] = useState('');
-  const [category,setCategory] = useState('');
-  const [brandName,setBrandName] = useState('');
-  const [productSaving,setProductSaving] = useState(false)
+  const [productName, setProductName] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [brandName, setBrandName] = useState('');
+  const [productSaving, setProductSaving] = useState(false);
 
-  const { setIsProductUpdated } = useProductStore();
+  const {setIsProductUpdated} = useProductStore();
   const handleSavingProduct = async () => {
-
     let newErrors = {};
 
-    if(!productName.trim()) newErrors.productName = "Product Name is required.";
-    if(!description.trim()) newErrors.description = "Product Description is required.";
-    if(!category.trim()) newErrors.category = 'Category is required.';
-    if(!brandName.trim()) newErrors.brandName = 'Brand Name is required.';
-    if(stocksList.length === 0) newErrors.stocks = 'All field required' 
-    if(Object.keys(newErrors).length > 0){
+    if (!productName.trim())
+      newErrors.productName = 'Product Name is required.';
+    if (!description.trim())
+      newErrors.description = 'Product Description is required.';
+    if (!category.trim()) newErrors.category = 'Category is required.';
+    if (!brandName.trim()) newErrors.brandName = 'Brand Name is required.';
+    if (stocksList.length === 0) newErrors.stocks = 'All field required';
+    if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     setProductSaving(true);
-    const counterRef = await getFirestore().collection('metadata').doc('product_counter');
-    try{
-      const newId = await getFirestore().runTransaction(async(transaction) => {
-        const counterDoc  = await transaction.get(counterRef)
+    const counterRef = await getFirestore()
+      .collection('metadata')
+      .doc('product_counter');
+    try {
+      const newId = await getFirestore().runTransaction(async transaction => {
+        const counterDoc = await transaction.get(counterRef);
 
         let currentId;
-        if(!counterDoc.exists){
-          transaction.set(counterRef, { lastProductId: 101 });
+        if (!counterDoc.exists) {
+          transaction.set(counterRef, {lastProductId: 101});
           return 101;
-        }else{
+        } else {
           currentId = await counterDoc.data().lastProductId;
           if (currentId >= 999) {
             throw new Error('Product ID limit reached (999)');
           }
         }
         const nextId = currentId + 1;
-        transaction.update(counterRef, { lastProductId: nextId });
+        transaction.update(counterRef, {lastProductId: nextId});
         return nextId;
-      }
-      )
+      });
       let productImageUrl = null;
       if (imageUri) {
         const fileName = `product_images/${newId}/ProductImage.jpg`;
-        const reference = firebase.storage().ref(fileName); 
-  
+        const reference = firebase.storage().ref(fileName);
+
         const responseBlob = await fetch(imageUri);
         const blob = await responseBlob.blob();
-  
+
         await reference.put(blob);
         productImageUrl = await reference.getDownloadURL();
-  
+
         console.log('Uploaded Product Image URL:', productImageUrl);
       }
 
       let barcodeImageUri = null;
-      if(barcodeRef){
+      if (barcodeRef) {
         const uri = await captureRef(barcodeRef, {
-                format: 'png',
-                quality: 1,
-              });
+          format: 'png',
+          quality: 1,
+        });
         const fileName = `barcode_images/${newId}/BarcodeImageUri.jpg`;
         const reference = firebase.storage().ref(fileName);
 
         const responseBlob = await fetch(uri);
         const blob = await responseBlob.blob();
 
-        await reference.put(blob)
+        await reference.put(blob);
         barcodeImageUri = await reference.getDownloadURL();
-  
+
         console.log('Uploaded Barcode Image URL:', barcodeImageUri);
       }
 
       const productData = {
-        ProductId:newId,
+        ProductId: newId,
         ProductName: productName.trimEnd(),
         Description: description.trimEnd(),
         Category: category.trimEnd(),
-        BrandName:brandName.trimEnd(),
-        Stocks:stocksList,
-        ProductImage:productImageUrl,
-        Barcode:inputValue,
-        BarcodeImageUri:barcodeImageUri,
+        BrandName: brandName.trimEnd(),
+        Stocks: stocksList,
+        ProductImage: productImageUrl,
+        Barcode: inputValue,
+        BarcodeImageUri: barcodeImageUri,
         CreatedAt: firestore.FieldValue.serverTimestamp(),
-      }
+      };
       console.log('productImageUrl: ', productImageUrl);
-      await getFirestore().collection('products').doc(newId.toString()).set(productData);
+      await getFirestore()
+        .collection('products')
+        .doc(newId.toString())
+        .set(productData);
       productAddedSuccess(newId);
-    }catch(error){
-      console.log("Error in internal server while saving product in firestore",error)
-    }finally{
-      setProductSaving(false)
+    } catch (error) {
+      console.log(
+        'Error in internal server while saving product in firestore',
+        error,
+      );
+    } finally {
+      setProductSaving(false);
     }
-  }
+  };
 
-  const productAddedSuccess = (id) => {
-    setVisible(true)
-    setProductId(id)
-    setIsProductUpdated(true)
+  const productAddedSuccess = id => {
+    setVisible(true);
+    setProductId(id);
+    setIsProductUpdated(true);
     setTimeout(() => {
-      setVisible(false)
-      navigation.goBack()
-    },1500)
-  }
+      setVisible(false);
+      navigation.goBack();
+    }, 1500);
+  };
 
   const [stocksList, setStocksList] = useState([]);
   console.log('stocksList: ', stocksList);
 
-  const [newStock, setNewStock] = useState({ weight: '', stocks: '', price: '' });
+  const [newStock, setNewStock] = useState({weight: '', stocks: '', price: ''});
 
   const handleAddStock = () => {
-    const { weight,stocks,price } = newStock;
+    const {weight, stocks, price} = newStock;
 
     let newErrors = {};
 
     if (!weight.trim()) newErrors.weight = 'Weight is required.';
     else if (isNaN(weight)) newErrors.weight = 'Weight must be a number.';
-    
+
     if (!stocks.trim()) newErrors.stocks = 'Stocks is required.';
     else if (isNaN(stocks)) newErrors.stocks = 'Stocks must be a number.';
-    
+
     if (!price.trim()) newErrors.price = 'Price is required.';
     else if (isNaN(price)) newErrors.price = 'Price must be a number.';
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, ...newErrors }));
+      setErrors(prev => ({...prev, ...newErrors}));
       return;
     }
 
-    setStocksList((prev) => [ ...prev, { weight: weight.concat(` ${value}`), stocks: Number(stocks), price: Number(price) }]);
-    setNewStock({ weight: '', stocks: '', price: '' });
-    setErrors((prev) => ({ ...prev, weight: '', stocks: '', price: '' }));
+    setStocksList(prev => [
+      ...prev,
+      {
+        weight: weight.concat(` ${value}`),
+        stocks: Number(stocks),
+        price: Number(price),
+      },
+    ]);
+    setNewStock({weight: '', stocks: '', price: ''});
+    setErrors(prev => ({...prev, weight: '', stocks: '', price: ''}));
   };
 
-  const handleDeleteStocks = (index) => {
-    setStocksList((prev) => prev.filter((_,i) => i !== index));
-  }
+  const handleDeleteStocks = index => {
+    setStocksList(prev => prev.filter((_, i) => i !== index));
+  };
 
   const data = [
-    { label: 'gm', value: 'gm' },
-    { label: 'lit', value: 'lit' },
-    { label: 'kg', value: 'kg' },
-  ]
+    {label: 'gm', value: 'gm'},
+    {label: 'lit', value: 'lit'},
+    {label: 'kg', value: 'kg'},
+  ];
   const [value, setValue] = useState('gm');
   console.log('value: ', value);
   return (
     <View style={styles.container}>
-      
       <Appbar.Header style={styles.headerContainer}>
         <Appbar.BackAction
           onPress={() => navigation.goBack()}
@@ -272,8 +293,7 @@ const ProductAddingScreen = () => {
         style={styles.scrollContainer}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled">
-
-          {/* Product ID Generation Container */}
+        {/* Product ID Generation Container */}
         <View
           style={{
             flex: 1,
@@ -282,31 +302,28 @@ const ProductAddingScreen = () => {
             borderColor: colors.lightGray,
             borderWidth: 1,
             padding: dimensions.sm,
-            flexDirection:'row',
-            alignItems:'center',
-            justifyContent:'space-between'
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}>
-          <View style={{ flexDirection:'row',
-            alignItems:'center' }}>
-          <Text variant="titleMedium" style={{alignSelf: 'flex-start'}}>
-            Product ID
-          </Text>
-          {
-            productIdLoading ? (
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Text variant="titleMedium" style={{alignSelf: 'flex-start'}}>
+              Product ID
+            </Text>
+            {productIdLoading ? (
               <Text variant="bodyMedium"> - Loading...</Text>
-            ) : productId 
-            ? (
-                <Text variant="bodyLarge"> - {productId}</Text>
-              )
-            : (
+            ) : productId ? (
+              <Text variant="bodyLarge"> - {productId}</Text>
+            ) : (
               <Text variant="bodyMedium"> - Not Generated</Text>
-            )
-          }
+            )}
           </View>
           <View>
-          <Button textColor={colors.black} onPress={() => fetchLastProductId()}>
-           Generate
-          </Button>
+            <Button
+              textColor={colors.black}
+              onPress={() => fetchLastProductId()}>
+              Generate
+            </Button>
           </View>
         </View>
 
@@ -375,21 +392,23 @@ const ProductAddingScreen = () => {
             <TextInput
               value={productName}
               onChangeText={text => {
-                setProductName(text)
-                setErrors(prev => ({ ...prev,productName:'' }))
+                setProductName(text);
+                setErrors(prev => ({...prev, productName: ''}));
               }}
               mode="outlined"
               label="Product Name"
               cursorColor={colors.black}
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
-            />  
-           { errors.productName ? (<Text style={styles.errorText}>Product Name Required</Text>) : null }
+            />
+            {errors.productName ? (
+              <Text style={styles.errorText}>Product Name Required</Text>
+            ) : null}
             <TextInput
               value={description}
               onChangeText={text => {
-                setDescription(text)
-                setErrors(prev => ({ ...prev,description:'' }))
+                setDescription(text);
+                setErrors(prev => ({...prev, description: ''}));
               }}
               mode="outlined"
               label="Description"
@@ -397,24 +416,29 @@ const ProductAddingScreen = () => {
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
             />
-            { errors.description ? (<Text style={styles.errorText}>Description Required</Text>) : null }
+            {errors.description ? (
+              <Text style={styles.errorText}>Description Required</Text>
+            ) : null}
             <TextInput
               value={category}
               onChangeText={text => {
-                setCategory(text)
-                setErrors(prev => ({ ...prev,category:'' }))
-              }}              mode="outlined"
+                setCategory(text);
+                setErrors(prev => ({...prev, category: ''}));
+              }}
+              mode="outlined"
               label="Category"
               cursorColor={colors.black}
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
             />
-            { errors.category ? (<Text style={styles.errorText}>Category Required</Text>) : null }
+            {errors.category ? (
+              <Text style={styles.errorText}>Category Required</Text>
+            ) : null}
             <TextInput
               value={brandName}
               onChangeText={text => {
-                setBrandName(text)
-                setErrors(prev => ({ ...prev,brandName:'' }))
+                setBrandName(text);
+                setErrors(prev => ({...prev, brandName: ''}));
               }}
               mode="outlined"
               label="Brand Name"
@@ -422,7 +446,9 @@ const ProductAddingScreen = () => {
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
             />
-            { errors.brandName ? (<Text style={styles.errorText}>Brand Name Required</Text>) : null }
+            {errors.brandName ? (
+              <Text style={styles.errorText}>Brand Name Required</Text>
+            ) : null}
           </View>
         </View>
 
@@ -444,121 +470,181 @@ const ProductAddingScreen = () => {
             }}>
             <Text variant="titleMedium">Stocks</Text>
           </View>
-          <View style={{ flex:1,width:'100%',flexDirection:'row',alignItems:'center',gap:dimensions.sm / 3,justifyContent:'center' }}>
-              <View style={{ flex:1 }}>
+          <View
+            style={{
+              flex: 1,
+              width: '100%',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: dimensions.sm / 3,
+              justifyContent: 'center',
+            }}>
+            <View style={{flex: 1}}>
               <TextInput
                 value={newStock.weight}
-                onChangeText={text => { 
-                  setNewStock((prev) => ({ ...prev,weight:text }))
-                  setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                }}        
+                onChangeText={text => {
+                  setNewStock(prev => ({...prev, weight: text}));
+                  setErrors(prev => ({
+                    ...prev,
+                    weight: '',
+                    price: '',
+                    stocks: '',
+                  }));
+                }}
                 mode="outlined"
                 label="Weight"
                 cursorColor={colors.black}
                 activeOutlineColor={colors.black}
-                style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
+                style={{
+                  backgroundColor: colors.pureWhite,
+                  height: dimensions.md * 2,
+                  fontSize: dimensions.sm,
+                }}
               />
-              </View>
-              <View style={{ flex:1 }}>
-                <Dropdown
-                style={{ borderWidth:1,borderColor:colors.grayText,height:dimensions.md * 2,marginTop:dimensions.sm/2,width:'100%' }} 
+            </View>
+            <View style={{flex: 1}}>
+              <Dropdown
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.grayText,
+                  height: dimensions.md * 2,
+                  marginTop: dimensions.sm / 2,
+                  width: '100%',
+                }}
                 data={data}
                 value={value}
                 placeholder={value}
                 labelField="label"
                 valueField="value"
-                selectedTextStyle={{ textAlign:'center' }}
-                onChange={(item) => {
+                selectedTextStyle={{textAlign: 'center'}}
+                onChange={item => {
                   if (item.value !== value) {
                     setValue(item.value);
                   }
                 }}
-                placeholderStyle={{ fontSize:dimensions.sm }}
-                renderItem = {item => {
+                placeholderStyle={{fontSize: dimensions.sm}}
+                renderItem={item => {
                   return (
-                    <View style={{ padding:dimensions.sm/2,borderWidth:0.5,borderBottomColor:colors.black }}>
-                    <Text style={styles.dropdownItem}>{item.label}</Text>
+                    <View
+                      style={{
+                        padding: dimensions.sm / 2,
+                        borderWidth: 0.5,
+                        borderBottomColor: colors.black,
+                      }}>
+                      <Text style={styles.dropdownItem}>{item.label}</Text>
                     </View>
-                  )
+                  );
                 }}
-                />
-              </View>
-              <View style={{ flex:1 }}>
+              />
+            </View>
+            <View style={{flex: 1}}>
               <TextInput
-                keyboardType='numeric'
+                keyboardType="numeric"
                 value={newStock.stocks}
                 onChangeText={text => {
-                  setNewStock((prev) => ({ ...prev,stocks:text }))
-                  setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                }}     
+                  setNewStock(prev => ({...prev, stocks: text}));
+                  setErrors(prev => ({
+                    ...prev,
+                    weight: '',
+                    price: '',
+                    stocks: '',
+                  }));
+                }}
                 mode="outlined"
                 label="Stocks"
                 cursorColor={colors.black}
                 activeOutlineColor={colors.black}
-                style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
+                style={{
+                  backgroundColor: colors.pureWhite,
+                  height: dimensions.md * 2,
+                  fontSize: dimensions.sm,
+                }}
               />
-              </View>
-              <View style={{ flex:1 }}>
-            <TextInput
-              keyboardType='numeric'
-              value={newStock.price}
-              onChangeText={text => {
-                setNewStock((prev) => ({ ...prev,price:text }))
-                setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-              }}      
-              mode="outlined"
-              label="Price"
-              cursorColor={colors.black}
-              activeOutlineColor={colors.black}
-              style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-            />
-              </View>
-            <Button textColor={colors.black} mode='text' onPress={() => handleAddStock()}>Add</Button>
             </View>
-            { errors.stocks || errors.weight || errors.price ? (<Text style={styles.errorText}>All fields required</Text>) : null }
+            <View style={{flex: 1}}>
+              <TextInput
+                keyboardType="numeric"
+                value={newStock.price}
+                onChangeText={text => {
+                  setNewStock(prev => ({...prev, price: text}));
+                  setErrors(prev => ({
+                    ...prev,
+                    weight: '',
+                    price: '',
+                    stocks: '',
+                  }));
+                }}
+                mode="outlined"
+                label="Price"
+                cursorColor={colors.black}
+                activeOutlineColor={colors.black}
+                style={{
+                  backgroundColor: colors.pureWhite,
+                  height: dimensions.md * 2,
+                  fontSize: dimensions.sm,
+                }}
+              />
+            </View>
+            <Button
+              textColor={colors.black}
+              mode="text"
+              onPress={() => handleAddStock()}>
+              Add
+            </Button>
+          </View>
+          {errors.stocks || errors.weight || errors.price ? (
+            <Text style={styles.errorText}>All fields required</Text>
+          ) : null}
         </View>
 
         {/* Added Stocks Container */}
         <View
-  style={{
-    flex: 1,
-    margin: dimensions.sm / 2,
-    backgroundColor: colors.pureWhite,
-    borderColor: colors.lightGray,
-    borderWidth: 1,
-    padding: dimensions.sm,
-  }}
->
-  <View
-    style={{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    }}
-  >
-    <Text variant="titleMedium">Added Stocks</Text>
-  </View>
+          style={{
+            flex: 1,
+            margin: dimensions.sm / 2,
+            backgroundColor: colors.pureWhite,
+            borderColor: colors.lightGray,
+            borderWidth: 1,
+            padding: dimensions.sm,
+          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+            <Text variant="titleMedium">Added Stocks</Text>
+          </View>
 
-  {/* Table Header */}
-  <View
-    style={{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: dimensions.sm / 2,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.lightGray,
-      backgroundColor: colors.halfWhite,
-    }}
-  >
-    <Text variant="titleMedium" style={styles.tableHeader}>S.No</Text>
-    <Text variant="titleMedium" style={styles.tableHeader}>Weight</Text>
-    <Text variant="titleMedium" style={styles.tableHeader}>Price</Text>
-    <Text variant="titleMedium" style={styles.tableHeader}>Stocks</Text>
-    <Text variant="titleMedium" style={styles.tableHeader}>Action</Text>
-  </View>
+          {/* Table Header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              paddingVertical: dimensions.sm / 2,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.lightGray,
+              backgroundColor: colors.halfWhite,
+            }}>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              S.No
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Weight
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Price
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Stocks
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Action
+            </Text>
+          </View>
 
-  {/* Table Body */}
-  {stocksList.length > 0 ? (
+          {/* Table Body */}
+          {stocksList.length > 0 ? (
             stocksList.map((item, index) => (
               <View key={`${index}`} style={styles.tableRow}>
                 <Text style={styles.tableCell}>{index + 1}</Text>
@@ -567,18 +653,17 @@ const ProductAddingScreen = () => {
                 <Text style={styles.tableCell}>{item.stocks}</Text>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => handleDeleteStocks(index)}
-                >
+                  onPress={() => handleDeleteStocks(index)}>
                   <Text style={styles.deleteText}>❌</Text>
                 </TouchableOpacity>
               </View>
             ))
           ) : (
-    <Text style={{ textAlign: 'center', padding: dimensions.sm }}>
-      No stocks added yet.
-    </Text>
-  )}
-</View>
+            <Text style={{textAlign: 'center', padding: dimensions.sm}}>
+              No stocks added yet.
+            </Text>
+          )}
+        </View>
 
         {/* BarCode Container */}
         <View
@@ -606,21 +691,19 @@ const ProductAddingScreen = () => {
               alignItems: 'center',
               height: dimensions.width / 3,
               width: dimensions.width / 1.5,
-              overflow:'hidden'
+              overflow: 'hidden',
             }}>
-              {
-                inputValue !== null && (
-                  <View ref={barcodeRef} collapsable={false}>
-                  <Barcode 
-                  value={inputValue} 
-                  format="CODE128" 
+            {inputValue !== null && (
+              <View ref={barcodeRef} collapsable={false}>
+                <Barcode
+                  value={inputValue}
+                  format="CODE128"
                   height={dimensions.xl * 3}
-                  maxWidth={dimensions.width/1.5}
+                  maxWidth={dimensions.width / 1.5}
                   text={inputValue}
-                  />
-                  </View>
-                )
-              }
+                />
+              </View>
+            )}
           </View>
 
           <View
@@ -628,10 +711,15 @@ const ProductAddingScreen = () => {
               flexDirection: 'row',
               alignSelf: 'center',
             }}>
-              <Button mode='contained-tonal' style={{ backgroundColor: colors.lightGray }} onPress={() => generateRandomBarcode()} textColor={colors.black}>Generate Barcode</Button>
+            <Button
+              mode="contained-tonal"
+              style={{backgroundColor: colors.lightGray}}
+              onPress={() => generateRandomBarcode()}
+              textColor={colors.black}>
+              Generate Barcode
+            </Button>
           </View>
         </View>
-        
 
         {/* Save product Button */}
         <View
@@ -642,26 +730,46 @@ const ProductAddingScreen = () => {
             borderColor: colors.lightGray,
             borderWidth: 1,
             padding: dimensions.sm,
-            justifyContent:'center',
-            alignItems:'center'
-          }}>{
-            productSaving ? (
-              <Button style={{ backgroundColor:colors.darkblue,width:dimensions.width / 1.5 }} textColor={colors.pureWhite}>Saving....</Button>
-            )
-            : (
-              <Button onPress={() => handleSavingProduct()} style={{ backgroundColor:colors.darkblue,width:dimensions.width / 1.5 }} textColor={colors.pureWhite}>Save Product</Button>
-            ) 
-          }
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {productSaving ? (
+            <Button
+              style={{
+                backgroundColor: colors.darkblue,
+                width: dimensions.width / 1.5,
+              }}
+              textColor={colors.pureWhite}>
+              Saving....
+            </Button>
+          ) : (
+            <Button
+              onPress={() => handleSavingProduct()}
+              style={{
+                backgroundColor: colors.darkblue,
+                width: dimensions.width / 1.5,
+              }}
+              textColor={colors.pureWhite}>
+              Save Product
+            </Button>
+          )}
         </View>
-        <Overlay 
-        isVisible={visible}>
-          <View style={{ alignItems:'center',justifyContent:'center',padding:dimensions.xl,gap:dimensions.md}}>
-          <AntDesign
-          name="checkcircle"
-          color="green"
-          size={dimensions.width / 4}
-          />
-          <Text style={{ fontSize:dimensions.md }}>Product - {productId} added successfully</Text>
+        <Overlay isVisible={visible}>
+          <View
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: dimensions.xl,
+              gap: dimensions.md,
+            }}>
+            <AntDesign
+              name="checkcircle"
+              color="green"
+              size={dimensions.width / 4}
+            />
+            <Text style={{fontSize: dimensions.md}}>
+              Product - {productId} added successfully
+            </Text>
           </View>
         </Overlay>
       </ScrollView>

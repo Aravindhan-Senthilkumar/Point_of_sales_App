@@ -6,30 +6,30 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import React, { useState} from 'react';
+import React, {useState} from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import {Appbar, Button, Text, TextInput} from 'react-native-paper';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import { getFirestore } from '@react-native-firebase/firestore';
-import { firebase } from '@react-native-firebase/storage';
+import {getFirestore} from '@react-native-firebase/firestore';
+import {firebase} from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
-import { Overlay } from '@rneui/themed';
-import AntDesign from 'react-native-vector-icons/AntDesign'
-import Foundation from 'react-native-vector-icons/Foundation'
+import {Overlay} from '@rneui/themed';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Foundation from 'react-native-vector-icons/Foundation';
 import useProductStore from '../store/useProductStore';
-import { Dropdown } from 'react-native-element-dropdown';
+import {Dropdown} from 'react-native-element-dropdown';
 
 const ProductUpdatingScreen = () => {
-  const data = useRoute().params.item
+  const data = useRoute().params.item;
   const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
 
   //State Updates
   const [imageUri, setImageUri] = useState(null);
-  
+
   //Capture photo function
   const handleCapturePhoto = () => {
     const options = {
@@ -85,63 +85,63 @@ const ProductUpdatingScreen = () => {
   ]);
 
   //Generating Product ID
-  const [productId,setProductId] = useState('');
+  const [productId, setProductId] = useState('');
 
-  console.log("ProductImage",data.ProductImage)
+  console.log('ProductImage', data.ProductImage);
   //Errors
-  const [errors,setErrors] = useState({
-      productName: '',
-      description: '',
-      category:'',
-      brandName:'',
-      weight: '',
-      stocks: '',
-      price: '',
-    });
+  const [errors, setErrors] = useState({
+    productName: '',
+    description: '',
+    category: '',
+    brandName: '',
+    weight: '',
+    stocks: '',
+    price: '',
+  });
 
   //HandleLogin
-  const [productName,setProductName] = useState(data.ProductName);
-  const [description,setDescription] = useState(data.Description);
-  const [category,setCategory] = useState(data.Category);
-  const [brandName,setBrandName] = useState(data.BrandName);
-  const [productSaving,setProductSaving] = useState(false)
+  const [productName, setProductName] = useState(data.ProductName);
+  const [description, setDescription] = useState(data.Description);
+  const [category, setCategory] = useState(data.Category);
+  const [brandName, setBrandName] = useState(data.BrandName);
+  const [productSaving, setProductSaving] = useState(false);
 
-  const [changeModalVisible, setChangeModalVisible] =useState(false);
+  const [changeModalVisible, setChangeModalVisible] = useState(false);
   const changeModalFunction = () => {
-    setChangeModalVisible(true)
+    setChangeModalVisible(true);
     setTimeout(() => {
-      setChangeModalVisible(false)
-    },800)
-  }
-
-
+      setChangeModalVisible(false);
+    }, 800);
+  };
 
   //Product updating Functions
- const { setIsProductUpdated } = useProductStore();
+  const {setIsProductUpdated} = useProductStore();
 
- const handleSavingProduct = async (id) => {
+  const handleSavingProduct = async id => {
     let newErrors = {};
 
-    if(!productName.trim()) newErrors.productName = "Product Name is required.";
-    if(!description.trim()) newErrors.description = "Product Description is required.";
-    if(!category.trim()) newErrors.category = 'Category is required.';
-    if(!brandName.trim()) newErrors.brandName = 'Brand Name is required.';
-    if(stocksList.length === 0) newErrors.stocks = 'All field required' 
+    if (!productName.trim())
+      newErrors.productName = 'Product Name is required.';
+    if (!description.trim())
+      newErrors.description = 'Product Description is required.';
+    if (!category.trim()) newErrors.category = 'Category is required.';
+    if (!brandName.trim()) newErrors.brandName = 'Brand Name is required.';
+    if (stocksList.length === 0) newErrors.stocks = 'All field required';
 
-    if(Object.keys(newErrors).length > 0){
+    if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     setProductSaving(true);
-    try{
+    try {
       const fileName = `product_images/${id}/ProductImage.jpg`;
-      const reference = await firebase.storage().ref(fileName); 
+      const reference = await firebase.storage().ref(fileName);
       const currentData = data;
-      const currentImageUrl = data.ProductImage
+      const currentImageUrl = data.ProductImage;
       let productImageUrl = currentImageUrl;
       console.log('productImageUrl: ', productImageUrl);
-      if(imageUri){
-        const responseBlob = await fetch(imageUri)
+      if (imageUri) {
+        const responseBlob = await fetch(imageUri);
         const blob = await responseBlob.blob();
         await reference.put(blob);
         productImageUrl = await reference.getDownloadURL();
@@ -151,87 +151,99 @@ const ProductUpdatingScreen = () => {
         ProductName: productName,
         Description: description,
         Category: category,
-        BrandName:brandName,
-        Stocks:stocksList,
-        ProductImage:productImageUrl,
+        BrandName: brandName,
+        Stocks: stocksList,
+        ProductImage: productImageUrl,
         UpdatedAt: firestore.FieldValue.serverTimestamp(),
-      }
+      };
 
-      const hasChanges = Object.keys(newProductData).some((key) => {
-        if(key === 'UpdatedAt') return false;
+      const hasChanges = Object.keys(newProductData).some(key => {
+        if (key === 'UpdatedAt') return false;
         const newValue = newProductData[key];
         const currentValue = currentData[key];
-        return newValue !== currentValue; 
-      })
+        return newValue !== currentValue;
+      });
       console.log('hasChanges: ', hasChanges);
-      if(hasChanges){
-        await getFirestore().collection('products').doc(id.toString()).update(newProductData);
+      if (hasChanges) {
+        await getFirestore()
+          .collection('products')
+          .doc(id.toString())
+          .update(newProductData);
         console.log('newProductData: ', newProductData);
         productUpdatedSuccess(id);
-      }else {
+      } else {
         changeModalFunction();
         console.log('No changes detected, skipping update.');
       }
-    }catch(error){
-      console.log("Error in internal server while saving product in firestore",error)
-    }finally{
-      setProductSaving(false)
+    } catch (error) {
+      console.log(
+        'Error in internal server while saving product in firestore',
+        error,
+      );
+    } finally {
+      setProductSaving(false);
     }
-  }
+  };
 
-  const productUpdatedSuccess = (id) => {
-    setVisible(true)
-    setProductId(id)
-    setIsProductUpdated(true)
+  const productUpdatedSuccess = id => {
+    setVisible(true);
+    setProductId(id);
+    setIsProductUpdated(true);
     setTimeout(() => {
-      setVisible(false)
-      navigation.goBack()
-    },1500)
-  }
+      setVisible(false);
+      navigation.goBack();
+    }, 1500);
+  };
 
   const [stocksList, setStocksList] = useState(data.Stocks);
-    console.log('stocksList: ', stocksList);
-  
-    const [newStock, setNewStock] = useState({ weight: '', stocks: '', price: '' });
-  
-    const handleAddStock = () => {
-      const { weight,stocks,price } = newStock;
-  
-      let newErrors = {};
-  
-      if (!weight.trim()) newErrors.weight = 'Weight is required.';
-      else if (isNaN(weight)) newErrors.weight = 'Weight must be a number.';
-      
-      if (!stocks.trim()) newErrors.stocks = 'Stocks is required.';
-      else if (isNaN(stocks)) newErrors.stocks = 'Stocks must be a number.';
-      
-      if (!price.trim()) newErrors.price = 'Price is required.';
-      else if (isNaN(price)) newErrors.price = 'Price must be a number.';
-  
-      if (Object.keys(newErrors).length > 0) {
-        setErrors((prev) => ({ ...prev, ...newErrors }));
-        return;
-      }
-  
-      setStocksList((prev) => [ ...prev, { weight: weight.concat(` ${dropdownValue}`), stocks: Number(stocks), price: Number(price) }]);
-      setNewStock({ weight: '', stocks: '', price: '' });
-      setErrors((prev) => ({ ...prev, weight: '', stocks: '', price: '' }));
-    };
-  
-    const handleDeleteStocks = (index) => {
-      setStocksList((prev) => prev.filter((_,i) => i !== index));
+  console.log('stocksList: ', stocksList);
+
+  const [newStock, setNewStock] = useState({weight: '', stocks: '', price: ''});
+
+  const handleAddStock = () => {
+    const {weight, stocks, price} = newStock;
+
+    let newErrors = {};
+
+    if (!weight.trim()) newErrors.weight = 'Weight is required.';
+    else if (isNaN(weight)) newErrors.weight = 'Weight must be a number.';
+
+    if (!stocks.trim()) newErrors.stocks = 'Stocks is required.';
+    else if (isNaN(stocks)) newErrors.stocks = 'Stocks must be a number.';
+
+    if (!price.trim()) newErrors.price = 'Price is required.';
+    else if (isNaN(price)) newErrors.price = 'Price must be a number.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(prev => ({...prev, ...newErrors}));
+      return;
     }
 
-    const dropdownData = [
-        { label: 'gm', value: 'gm' },
-        { label: 'lit', value: 'lit' },
-        { label: 'kg', value: 'kg' },
-      ]
-      const [dropdownValue, setDropDownValue] = useState('gm');
-      console.log('value: ', value);
+    setStocksList(prev => [
+      ...prev,
+      {
+        weight: weight.concat(` ${dropdownValue}`),
+        stocks: Number(stocks),
+        price: Number(price),
+      },
+    ]);
+    setNewStock({weight: '', stocks: '', price: ''});
+    setErrors(prev => ({...prev, weight: '', stocks: '', price: ''}));
+  };
+
+  const handleDeleteStocks = index => {
+    setStocksList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const dropdownData = [
+    {label: 'gm', value: 'gm'},
+    {label: 'lit', value: 'lit'},
+    {label: 'kg', value: 'kg'},
+  ];
+  const [dropdownValue, setDropDownValue] = useState('gm');
+  console.log('value: ', value);
   return (
     <View style={styles.container}>
-      
       <Appbar.Header style={styles.headerContainer}>
         <Appbar.BackAction
           onPress={() => navigation.goBack()}
@@ -249,8 +261,7 @@ const ProductUpdatingScreen = () => {
         style={styles.scrollContainer}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled">
-
-          {/* Product ID Generation Container */}
+        {/* Product ID Generation Container */}
         <View
           style={{
             flex: 1,
@@ -259,16 +270,15 @@ const ProductUpdatingScreen = () => {
             borderColor: colors.lightGray,
             borderWidth: 1,
             padding: dimensions.sm,
-            flexDirection:'row',
-            alignItems:'center',
-            justifyContent:'space-between'
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}>
-          <View style={{ flexDirection:'row',
-            alignItems:'center' }}>
-          <Text variant="titleMedium" style={{alignSelf: 'flex-start'}}>
-            Product ID - 
-          </Text>
-          <Text variant="bodyMedium"> {data.ProductId}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Text variant="titleMedium" style={{alignSelf: 'flex-start'}}>
+              Product ID -
+            </Text>
+            <Text variant="bodyMedium"> {data.ProductId}</Text>
           </View>
         </View>
 
@@ -288,10 +298,7 @@ const ProductUpdatingScreen = () => {
           </Text>
           <View style={styles.imageWrapper}>
             <Image
-              source={
-                imageUri ? { uri:imageUri } 
-                : {uri: data.ProductImage}
-              }
+              source={imageUri ? {uri: imageUri} : {uri: data.ProductImage}}
               style={styles.productImage}
             />
           </View>
@@ -339,21 +346,23 @@ const ProductUpdatingScreen = () => {
             <TextInput
               value={productName}
               onChangeText={text => {
-                setProductName(text)
-                setErrors(prev => ({ ...prev,productName:'' }))
+                setProductName(text);
+                setErrors(prev => ({...prev, productName: ''}));
               }}
               mode="outlined"
               label="Product Name"
               cursorColor={colors.black}
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
-            />  
-           { errors.productName ? (<Text style={styles.errorText}>Product Name Required</Text>) : null }
+            />
+            {errors.productName ? (
+              <Text style={styles.errorText}>Product Name Required</Text>
+            ) : null}
             <TextInput
               value={description}
               onChangeText={text => {
-                setDescription(text)
-                setErrors(prev => ({ ...prev,description:'' }))
+                setDescription(text);
+                setErrors(prev => ({...prev, description: ''}));
               }}
               mode="outlined"
               label="Description"
@@ -361,24 +370,29 @@ const ProductUpdatingScreen = () => {
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
             />
-            { errors.description ? (<Text style={styles.errorText}>Description Required</Text>) : null }
+            {errors.description ? (
+              <Text style={styles.errorText}>Description Required</Text>
+            ) : null}
             <TextInput
               value={category}
               onChangeText={text => {
-                setCategory(text)
-                setErrors(prev => ({ ...prev,category:'' }))
-              }}              mode="outlined"
+                setCategory(text);
+                setErrors(prev => ({...prev, category: ''}));
+              }}
+              mode="outlined"
               label="Category"
               cursorColor={colors.black}
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
             />
-            { errors.category ? (<Text style={styles.errorText}>Category Required</Text>) : null }
+            {errors.category ? (
+              <Text style={styles.errorText}>Category Required</Text>
+            ) : null}
             <TextInput
               value={brandName}
               onChangeText={text => {
-                setBrandName(text)
-                setErrors(prev => ({ ...prev,brandName:'' }))
+                setBrandName(text);
+                setErrors(prev => ({...prev, brandName: ''}));
               }}
               mode="outlined"
               label="Brand Name"
@@ -386,104 +400,14 @@ const ProductUpdatingScreen = () => {
               activeOutlineColor={colors.black}
               style={{backgroundColor: colors.pureWhite}}
             />
-            { errors.brandName ? (<Text style={styles.errorText}>Brand Name Required</Text>) : null }
+            {errors.brandName ? (
+              <Text style={styles.errorText}>Brand Name Required</Text>
+            ) : null}
           </View>
         </View>
 
         {/* Stock Quantity Container */}
-                <View
-                  style={{
-                    flex: 1,
-                    margin: dimensions.sm / 2,
-                    backgroundColor: colors.pureWhite,
-                    borderColor: colors.lightGray,
-                    borderWidth: 1,
-                    padding: dimensions.sm,
-                  }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
-                    <Text variant="titleMedium">Stocks</Text>
-                  </View>
-                  <View style={{ flex:1,width:'100%',flexDirection:'row',alignItems:'center',gap:dimensions.sm / 3,justifyContent:'center' }}>
-              <View style={{ flex:1 }}>
-              <TextInput
-                value={newStock.weight}
-                onChangeText={text => { 
-                  setNewStock((prev) => ({ ...prev,weight:text }))
-                  setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                }}        
-                mode="outlined"
-                label="Weight"
-                cursorColor={colors.black}
-                activeOutlineColor={colors.black}
-                style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-              />
-              </View>
-              <View style={{ flex:1 }}>
-                <Dropdown
-                style={{ borderWidth:1,borderColor:colors.grayText,height:dimensions.md * 2,marginTop:dimensions.sm/2,width:'100%' }} 
-                data={dropdownData}
-                value={dropdownValue}
-                placeholder={dropdownValue}
-                labelField="label"
-                valueField="value"
-                selectedTextStyle={{ textAlign:'center' }}
-                onChange={(item) => {
-                  if (item.value !== value) {
-                    setDropDownValue(item.value);
-                  }
-                }}
-                placeholderStyle={{ fontSize:dimensions.sm }}
-                renderItem = {item => {
-                  return (
-                    <View style={{ padding:dimensions.sm/2,borderWidth:0.5,borderBottomColor:colors.black }}>
-                    <Text style={styles.dropdownItem}>{item.label}</Text>
-                    </View>
-                  )
-                }}
-                />
-              </View>
-              <View style={{ flex:1 }}>
-              <TextInput
-                keyboardType='numeric'
-                value={newStock.stocks}
-                onChangeText={text => {
-                  setNewStock((prev) => ({ ...prev,stocks:text }))
-                  setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-                }}     
-                mode="outlined"
-                label="Stocks"
-                cursorColor={colors.black}
-                activeOutlineColor={colors.black}
-                style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-              />
-              </View>
-              <View style={{ flex:1 }}>
-            <TextInput
-              keyboardType='numeric'
-              value={newStock.price}
-              onChangeText={text => {
-                setNewStock((prev) => ({ ...prev,price:text }))
-                setErrors((prev) => ({ ...prev,weight:'',price:'',stocks:'' }))
-              }}      
-              mode="outlined"
-              label="Price"
-              cursorColor={colors.black}
-              activeOutlineColor={colors.black}
-              style={{backgroundColor: colors.pureWhite,height:dimensions.md * 2,fontSize:dimensions.sm}}
-            />
-              </View>
-            <Button textColor={colors.black} mode='text' onPress={() => handleAddStock()}>Add</Button>
-            </View>
-                    { errors.stocks || errors.weight || errors.price ? (<Text style={styles.errorText}>All fields required</Text>) : null }
-                </View>
-        
-                {/* Added Stocks Container */}
-                <View
+        <View
           style={{
             flex: 1,
             margin: dimensions.sm / 2,
@@ -491,18 +415,161 @@ const ProductUpdatingScreen = () => {
             borderColor: colors.lightGray,
             borderWidth: 1,
             padding: dimensions.sm,
-          }}
-        >
+          }}>
           <View
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-            }}
-          >
+            }}>
+            <Text variant="titleMedium">Stocks</Text>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              width: '100%',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: dimensions.sm / 3,
+              justifyContent: 'center',
+            }}>
+            <View style={{flex: 1}}>
+              <TextInput
+                value={newStock.weight}
+                onChangeText={text => {
+                  setNewStock(prev => ({...prev, weight: text}));
+                  setErrors(prev => ({
+                    ...prev,
+                    weight: '',
+                    price: '',
+                    stocks: '',
+                  }));
+                }}
+                mode="outlined"
+                label="Weight"
+                cursorColor={colors.black}
+                activeOutlineColor={colors.black}
+                style={{
+                  backgroundColor: colors.pureWhite,
+                  height: dimensions.md * 2,
+                  fontSize: dimensions.sm,
+                }}
+              />
+            </View>
+            <View style={{flex: 1}}>
+              <Dropdown
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.grayText,
+                  height: dimensions.md * 2,
+                  marginTop: dimensions.sm / 2,
+                  width: '100%',
+                }}
+                data={dropdownData}
+                value={dropdownValue}
+                placeholder={dropdownValue}
+                labelField="label"
+                valueField="value"
+                selectedTextStyle={{textAlign: 'center'}}
+                onChange={item => {
+                  if (item.value !== value) {
+                    setDropDownValue(item.value);
+                  }
+                }}
+                placeholderStyle={{fontSize: dimensions.sm}}
+                renderItem={item => {
+                  return (
+                    <View
+                      style={{
+                        padding: dimensions.sm / 2,
+                        borderWidth: 0.5,
+                        borderBottomColor: colors.black,
+                      }}>
+                      <Text style={styles.dropdownItem}>{item.label}</Text>
+                    </View>
+                  );
+                }}
+              />
+            </View>
+            <View style={{flex: 1}}>
+              <TextInput
+                keyboardType="numeric"
+                value={newStock.stocks}
+                onChangeText={text => {
+                  setNewStock(prev => ({...prev, stocks: text}));
+                  setErrors(prev => ({
+                    ...prev,
+                    weight: '',
+                    price: '',
+                    stocks: '',
+                  }));
+                }}
+                mode="outlined"
+                label="Stocks"
+                cursorColor={colors.black}
+                activeOutlineColor={colors.black}
+                style={{
+                  backgroundColor: colors.pureWhite,
+                  height: dimensions.md * 2,
+                  fontSize: dimensions.sm,
+                }}
+              />
+            </View>
+            <View style={{flex: 1}}>
+              <TextInput
+                keyboardType="numeric"
+                value={newStock.price}
+                onChangeText={text => {
+                  setNewStock(prev => ({...prev, price: text}));
+                  setErrors(prev => ({
+                    ...prev,
+                    weight: '',
+                    price: '',
+                    stocks: '',
+                  }));
+                }}
+                mode="outlined"
+                label="Price"
+                cursorColor={colors.black}
+                activeOutlineColor={colors.black}
+                style={{
+                  backgroundColor: colors.pureWhite,
+                  height: dimensions.md * 2,
+                  fontSize: dimensions.sm,
+                }}
+              />
+            </View>
+            <Button
+              textColor={colors.black}
+              mode="text"
+              onPress={() => handleAddStock()}>
+              Add
+            </Button>
+          </View>
+          {errors.stocks || errors.weight || errors.price ? (
+            <Text style={styles.errorText}>All fields required</Text>
+          ) : null}
+        </View>
+
+        {/* Added Stocks Container */}
+        <View
+          style={{
+            flex: 1,
+            margin: dimensions.sm / 2,
+            backgroundColor: colors.pureWhite,
+            borderColor: colors.lightGray,
+            borderWidth: 1,
+            padding: dimensions.sm,
+          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
             <Text variant="titleMedium">Added Stocks</Text>
           </View>
-        
+
           {/* Table Header */}
           <View
             style={{
@@ -512,33 +579,41 @@ const ProductUpdatingScreen = () => {
               borderBottomWidth: 1,
               borderBottomColor: colors.lightGray,
               backgroundColor: colors.halfWhite,
-            }}
-          >
-            <Text variant="titleMedium" style={styles.tableHeader}>S.No</Text>
-            <Text variant="titleMedium" style={styles.tableHeader}>Weight</Text>
-            <Text variant="titleMedium" style={styles.tableHeader}>Price</Text>
-            <Text variant="titleMedium" style={styles.tableHeader}>Stocks</Text>
-            <Text variant="titleMedium" style={styles.tableHeader}>Action</Text>
+            }}>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              S.No
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Weight
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Price
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Stocks
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Action
+            </Text>
           </View>
-        
+
           {/* Table Body */}
           {stocksList.length > 0 ? (
-                    stocksList.map((item, index) => (
-                      <View key={`${index}`} style={styles.tableRow}>
-                        <Text style={styles.tableCell}>{index + 1}</Text>
-                        <Text style={styles.tableCell}>{item.weight}</Text>
-                        <Text style={styles.tableCell}>₹ {item.price}</Text>
-                        <Text style={styles.tableCell}>{item.stocks}</Text>
-                        <TouchableOpacity
-                          style={styles.deleteButton}
-                          onPress={() => handleDeleteStocks(index)}
-                        >
-                          <Text style={styles.deleteText}>❌</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))
-                  ) : (
-            <Text style={{ textAlign: 'center', padding: dimensions.sm }}>
+            stocksList.map((item, index) => (
+              <View key={`${index}`} style={styles.tableRow}>
+                <Text style={styles.tableCell}>{index + 1}</Text>
+                <Text style={styles.tableCell}>{item.weight}</Text>
+                <Text style={styles.tableCell}>₹ {item.price}</Text>
+                <Text style={styles.tableCell}>{item.stocks}</Text>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteStocks(index)}>
+                  <Text style={styles.deleteText}>❌</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          ) : (
+            <Text style={{textAlign: 'center', padding: dimensions.sm}}>
               No stocks added yet.
             </Text>
           )}
@@ -570,13 +645,16 @@ const ProductUpdatingScreen = () => {
               alignItems: 'center',
               height: dimensions.width / 3,
               width: dimensions.width / 1.5,
-              overflow:'hidden'
+              overflow: 'hidden',
             }}>
-             <Image 
-             source={{ uri:data.BarcodeImageUri }}
-             style={{ height: dimensions.width / 3,
-              width: dimensions.width / 1.5,resizeMode:'cover' }}
-             />
+            <Image
+              source={{uri: data.BarcodeImageUri}}
+              style={{
+                height: dimensions.width / 3,
+                width: dimensions.width / 1.5,
+                resizeMode: 'cover',
+              }}
+            />
           </View>
         </View>
 
@@ -589,36 +667,62 @@ const ProductUpdatingScreen = () => {
             borderColor: colors.lightGray,
             borderWidth: 1,
             padding: dimensions.sm,
-            justifyContent:'center',
-            alignItems:'center'
-          }}>{
-            productSaving ? (
-              <Button style={{ backgroundColor:colors.darkblue,width:dimensions.width / 1.5 }} textColor={colors.pureWhite}>Saving....</Button>
-            )
-            : (
-              <Button onPress={() => handleSavingProduct(data.ProductId)} style={{ backgroundColor:colors.darkblue,width:dimensions.width / 1.5 }} textColor={colors.pureWhite}>Save Product</Button>
-            ) 
-          }
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {productSaving ? (
+            <Button
+              style={{
+                backgroundColor: colors.darkblue,
+                width: dimensions.width / 1.5,
+              }}
+              textColor={colors.pureWhite}>
+              Saving....
+            </Button>
+          ) : (
+            <Button
+              onPress={() => handleSavingProduct(data.ProductId)}
+              style={{
+                backgroundColor: colors.darkblue,
+                width: dimensions.width / 1.5,
+              }}
+              textColor={colors.pureWhite}>
+              Save Product
+            </Button>
+          )}
         </View>
-        <Overlay 
-        isVisible={visible}>
-          <View style={{ alignItems:'center',justifyContent:'center',padding:dimensions.xl,gap:dimensions.md}}>
-          <AntDesign
-          name="checkcircle"
-          color="green"
-          size={dimensions.width / 4}
-          />
-          <Text style={{ fontSize:dimensions.md }}>Product - {productId} updated successfully</Text>
+        <Overlay isVisible={visible}>
+          <View
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: dimensions.xl,
+              gap: dimensions.md,
+            }}>
+            <AntDesign
+              name="checkcircle"
+              color="green"
+              size={dimensions.width / 4}
+            />
+            <Text style={{fontSize: dimensions.md}}>
+              Product - {productId} updated successfully
+            </Text>
           </View>
         </Overlay>
         <Overlay isVisible={changeModalVisible}>
-        <View style={{ alignItems:'center',justifyContent:'center',padding:dimensions.xl,gap:dimensions.md}}>
-          <Foundation
-          name="alert"
-          color={colors.red}
-          size={dimensions.width / 4}
-          />
-          <Text style={{ fontSize:dimensions.md }}>No Changes Detected</Text>
+          <View
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: dimensions.xl,
+              gap: dimensions.md,
+            }}>
+            <Foundation
+              name="alert"
+              color={colors.red}
+              size={dimensions.width / 4}
+            />
+            <Text style={{fontSize: dimensions.md}}>No Changes Detected</Text>
           </View>
         </Overlay>
       </ScrollView>

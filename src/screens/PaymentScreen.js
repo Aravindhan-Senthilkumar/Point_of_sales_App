@@ -24,8 +24,11 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import RNFS from 'react-native-fs';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import notifee, {AndroidImportance, EventType} from '@notifee/react-native';
-import FileViewer from 'react-native-file-viewer';
+import notifee, {AndroidImportance} from '@notifee/react-native';
+import {
+  checkManagePermission,
+  requestManagePermission,
+} from 'manage-external-storage';
 
 const PaymentScreen = () => {
   const navigation = useNavigation();
@@ -126,7 +129,7 @@ const PaymentScreen = () => {
           };
         } else {
           if (partialPayMode === 'Cash') {
-            orderData.PaymentMethod = 'Partial Credit - Cash'
+            orderData.PaymentMethod = 'Partial Credit - Cash';
             orderData.AmountPaid = {
               Total: Number(total),
               CashPaid: Number(cashAmount),
@@ -135,8 +138,8 @@ const PaymentScreen = () => {
           } else {
             if (!transactionId.trim())
               newErrors.transactionId = 'Please enter transaction id';
-              orderData.PaymentMethod = 'Partial Credit - UPI'
-              orderData.AmountPaid = {
+            orderData.PaymentMethod = 'Partial Credit - UPI';
+            orderData.AmountPaid = {
               Total: Number(total),
               CashPaid: Number(upiAmount),
               TransactionId: transactionId,
@@ -147,14 +150,14 @@ const PaymentScreen = () => {
       } else if (paymentMethod === 'UPI') {
         if (!transactionId.trim())
           newErrors.transactionId = 'Please enter transaction id';
-          orderData.PaymentMethod = 'UPI'
-          orderData.AmountPaid = {
+        orderData.PaymentMethod = 'UPI';
+        orderData.AmountPaid = {
           Total: Number(total),
           TransactionId: transactionId,
           CashPaid: Number(total),
         };
       } else {
-        orderData.PaymentMethod = 'Cash'
+        orderData.PaymentMethod = 'Cash';
         orderData.AmountPaid = {Total: Number(total), CashPaid: Number(total)};
       }
       if (Object.keys(newErrors).length > 0) {
@@ -206,7 +209,7 @@ const PaymentScreen = () => {
       setpdfGenerationLoading(true);
       await generatePdf();
       setPaymentConfirmation(true);
-      clearCart();
+      // clearCart();
       setOrderSuccessVisible(false);
       navigation.goBack();
     } catch (error) {
@@ -250,10 +253,17 @@ const PaymentScreen = () => {
 
   const data = invoiceData;
   console.log('data: ', data);
-
   const requestStoragePermission = async () => {
-    if (Platform.OS !== 'android') return true; // Only request for Android devices
+    if (Platform.OS !== 'android') return true;
 
+    if (Platform.Version < 35) {
+      return requestLegacyStoragePermission();
+    } else {
+      return requestAndroid15StoragePermission();
+    }
+  };
+
+  const requestLegacyStoragePermission = async () => {
     let permissionStatus = await check(
       PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
     );
@@ -278,11 +288,33 @@ const PaymentScreen = () => {
     } else if (permissionStatus === RESULTS.UNAVAILABLE) {
       console.log('Storage permission unavailable on this device.');
     }
-
     console.log('Storage permission denied');
     return false;
   };
+
+  const requestAndroid15StoragePermission = async () => {
+    let permissionStatus = await checkManagePermission();
+    console.log('permissionStatus1: ', permissionStatus);
+    if (permissionStatus === true) {
+      console.log('Storage permission already granted');
+      return true;
+    }
+    permissionStatus = await requestManagePermission();
+    console.log(`The permission status is after request ${permissionStatus}`);
+    if (permissionStatus === true) {
+      console.log('Storage permission granted after request');
+      return true;
+    } else {
+      console.log('Storage permission denied');
+      return false;
+    }
+  };
+
+  const {adminLogoUri} = useAgentStore();
+  console.log('adminLogoUri: ', adminLogoUri);
+
   const [pdfGenerationLoading, setpdfGenerationLoading] = useState(false);
+
   const generatePdf = async () => {
     const today = new Date();
     const formattedDate =
@@ -309,17 +341,16 @@ const PaymentScreen = () => {
       <div style="max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ddd; padding-bottom: 20px;">
           <div>
-              <img src="../images/avatar.png" width="150px" alt="Logo">
+              <img src=${adminLogoUri} width="150px" height="150px" alt="Logo">
           </div>
           <div style="text-align: right;">
               <h1 style="margin: 0; color: #333;">UK Info Tech</h1>
-              <p style="margin: 5px 0; font-size: 16px;">5681, Santhanathapuram 7th Street,</p>
-              <p style="margin: 5px 0; font-size: 16px;">Pudukkottai-622001</p>
+              <p style="margin: 5px 0; font-size: 16px;">5681, Santhanathapuram 7th Street,Pudukkottai-622001.</p>
               <p style="margin: 5px 0; font-size: 16px;"><strong>GSTIN:</strong> ......................</p>
               <p style="margin: 5px 0; font-size: 16px;"><strong>MSME No:</strong> ......................</p>
           </div>
       </div>
-      <div style="background-color: #eee; padding: 15px; margin-top: 20px; border-radius: 5px;">
+      <div style="background-color: #eee; padding: 15px; margin-top: 10px; border-radius: 5px;">
           <h2 style="margin: 0; color: #333;">Tax Invoice #UK/2025/${uid}</h2>
           <p style="margin: 5px 0; font-size: 18px;"><strong>Invoice Date:</strong> ${formattedDate}</p>
       </div>
@@ -338,10 +369,10 @@ const PaymentScreen = () => {
               <p style="margin: 5px 0; font-size: 18px;"><strong>GSTIN Number:</strong> -</p>
           </div>
           <div>
-              <h1 style="font-size: 80px; color: green; opacity: 0.8;">PAID</h1>
+              <h1 style="font-size: 40px; color: green; opacity: 0.8;">PAID</h1>
           </div>
       </div>
-      <table style="width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 18px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 18px;">
           <thead>
               <tr style="background-color: #222; color: white; text-align: left;">
                   <th style="padding: 10px; width: 40%;">Description</th>
@@ -364,20 +395,24 @@ const PaymentScreen = () => {
                   <td colspan="3" style="text-align: right; padding: 10px;"><strong>Tax</strong></td>
                   <td style="padding: 10px;"><strong>₹ ${0}</strong></td>
               </tr>
-              <tr style="background-color: #f4f4f4;">
+              ${
+                data.OrdersPending.AmountPaid.CreditAmount
+                  ? `
+                  <tr style="background-color: #f4f4f4;">
                   <td colspan="3" style="text-align: right; padding: 10px;"><strong>Credit</strong></td>
-                  <td style="padding: 10px;"><strong>₹ ${
-                    data.OrdersPending.AmountPaid.CreditAmount
-                      ? data.OrdersPending.AmountPaid.CreditAmount
-                      : 0
-                  }</strong></td>
-              </tr>
-              <tr3 style="background-color: #322; color: white;">
+                  <td style="padding: 10px;"><strong>₹ ${data.OrdersPending.AmountPaid.CreditAmount}</strong></td>
+                  </tr>`
+                  : ''
+              }
+             
+                  
+                  
+              <tr style="background-color: #222; color: white;">
                   <td colspan="3" style="text-align: right; padding: 10px;"><strong>Total</strong></td>
                   <td style="padding: 10px;"><strong>₹ ${
                     data.OrdersPending.AmountPaid.Total
                   }</strong></td>
-              </tr3
+              </tr
           </tfoot>
       </table>
 
@@ -395,18 +430,41 @@ const PaymentScreen = () => {
         <tbody>
             <tr style="border-bottom: 1px solid #ddd;">
             <td style="padding: 10px;">${formattedDate}</td>
-            <td style="padding: 10px;">${
-              data.OrdersPending.PaymentMethod
-            }</td>
+            ${
+              data.OrdersPending.PaymentMethod === 'Partial Credit - Cash' ||
+              data.OrdersPending.PaymentMethod === 'Partial Credit - UPI'
+                ? `
+              <td style="padding: 10px;">${
+                data.OrdersPending.PaymentMethod === 'Partial Credit - Cash'
+                  ? 'Cash Paid'
+                  : 'UPI'
+              }</td>`
+                : `<td style="padding: 10px;">${data.OrdersPending.PaymentMethod}</td>`
+            }
+            
             <td style="padding: 10px;">${
               data.OrdersPending.AmountPaid.TransactionId
                 ? data.OrdersPending.AmountPaid.TransactionId
                 : '-'
             }</td>
             <td style="padding: 10px;">₹ ${
-                    data.OrdersPending.AmountPaid.CashPaid
-                  }</td>
+              data.OrdersPending.AmountPaid.CashPaid
+            }</td>
             </tr>
+            
+            ${
+              data.OrdersPending.PaymentMethod === 'Partial Credit - Cash' ||
+              data.OrdersPending.PaymentMethod === 'Partial Credit - UPI'
+                ? `
+              <tr style="border-bottom: 1px solid #ddd;">
+              <td style="padding: 10px;">${formattedDate}</td>
+             <td style="padding: 10px;">Credit</td>
+             <td style="padding: 10px;">-</td>
+              <td style="padding: 10px;">₹ ${data.OrdersPending.AmountPaid.CreditAmount}</td>
+              </tr>`
+                : ''
+            }
+
         </tbody>
       </table>
       </div>
@@ -419,10 +477,6 @@ const PaymentScreen = () => {
 
     const permissionGranted = await requestStoragePermission();
     console.log('permissionGranted: ', permissionGranted);
-    if (!permissionGranted) {
-      console.log('Permission denied');
-      return;
-    }
 
     const options = {
       html: htmlContent,

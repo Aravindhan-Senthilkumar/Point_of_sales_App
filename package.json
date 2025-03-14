@@ -28,6 +28,7 @@
     "@robinbobin/react-native-google-drive-api-wrapper": "^2.2.3",
     "axios": "^1.7.9",
     "firestore": "^1.1.6",
+    "manage-external-storage": "^0.1.3",
     "patch-package": "^8.0.0",
     "postinstall-postinstall": "^2.1.0",
     "react": "18.3.1",
