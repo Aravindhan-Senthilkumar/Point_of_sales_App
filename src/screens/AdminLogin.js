@@ -130,15 +130,16 @@ const AdminLogin = () => {
       }
       const trimmedUsername = username.trimEnd();
       const isExists = await getFirestore()
-        .collection('admin')
-        .doc(trimmedUsername)
-        .get();
+      .collection('admin')
+      .doc(trimmedUsername).get()
+      
       if (!isExists.exists) {
         setError('Invalid Admin credentials');
         setLoading(false);
         return;
       }
       const dbPassword = isExists.data().password;
+      
       if (dbPassword !== password.trimEnd()) {
         setError('Wrong password');
         setLoading(false);

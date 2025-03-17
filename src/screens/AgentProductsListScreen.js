@@ -4,7 +4,7 @@ import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import {Appbar, Card, Text} from 'react-native-paper';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation} from '@react-navigation/native';
 import {FAB} from '@rneui/base';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Camera,CameraType} from 'react-native-camera-kit';
@@ -13,12 +13,15 @@ import AntDesign from 'react-native-vector-icons/AntDesign'
 import { getFirestore } from '@react-native-firebase/firestore';
 import useProductStore from '../store/useProductStore';
 import { ActivityIndicator } from 'react-native-paper';
+import { SearchBar } from '@rneui/themed';
 
 const AgentProductsListScreen = () => {
   const navigation = useNavigation();
   const [isScanning, setIsScanning] = useState(false);
-  const [productListsData,setProductListsData] = useState();
+  const [productListsData,setProductListsData] = useState([]);
   const { isProductUpdated,setIsProductUpdated } = useProductStore();
+  console.log('isProductUpdated: ', isProductUpdated);
+
   const fetchProductLists = useCallback(async () => {
     setLoading(true)
     try {
@@ -93,6 +96,13 @@ const AgentProductsListScreen = () => {
     }
   }
   const [loading, setLoading] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredProducts = productListsData.filter((item) => (item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+  item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim()
+)))
+  console.log('filteredProducts: ', filteredProducts);
   return (
     <View style={styles.container}>
 
@@ -108,7 +118,24 @@ const AgentProductsListScreen = () => {
           titleStyle={styles.headerText}
         />
       </Appbar.Header>
-
+      <SearchBar
+      autoCapitalize='sentences'
+      placeholder='Search products'
+      value={searchQuery}
+      onChangeText={(text) => setSearchQuery(text)} 
+      containerStyle={{ backgroundColor:colors.halfWhite,borderColor:colors
+        .halfWhite
+       }}
+       inputContainerStyle={{ 
+        backgroundColor:colors.lightGray,
+        borderRadius:dimensions.xl,
+        padding:0,
+        height:dimensions.xl * 1.3,
+      }}
+      leftIconContainerStyle={{ marginLeft:dimensions.md }}
+      rightIconContainerStyle={{  marginRight:dimensions.sm }}
+      inputStyle={{ fontSize:dimensions.sm * 1.15 }}
+      />
       {/* Tooltip for Barcode Scanner */}
       <View style={styles.BarCodeContainer}>
         <FAB
@@ -169,7 +196,11 @@ const AgentProductsListScreen = () => {
         : (
           <FlatList
       showsVerticalScrollIndicator={false}
-      data={productListsData}
+      data={
+        searchQuery.trim() 
+        ? filteredProducts
+        : productListsData
+      }
       renderItem={({ item }) => {
         return (
         <View style={{ marginHorizontal:dimensions.sm / 2 }}>

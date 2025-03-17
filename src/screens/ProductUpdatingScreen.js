@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import React, {useState} from 'react';
 import {colors} from '../constants/colors';
@@ -21,6 +22,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import Foundation from 'react-native-vector-icons/Foundation';
 import useProductStore from '../store/useProductStore';
 import {Dropdown} from 'react-native-element-dropdown';
+import { check, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 
 const ProductUpdatingScreen = () => {
   const data = useRoute().params.item;
@@ -30,8 +32,35 @@ const ProductUpdatingScreen = () => {
   //State Updates
   const [imageUri, setImageUri] = useState(null);
 
+  //Request camera permission
+    const requestCameraPermission = async () => {
+      try{
+        if(Platform.OS !== 'android') return true;
+  
+        let permissionStatus = await check(PERMISSIONS.ANDROID.CAMERA)
+        console.log('permissionStatus: ', permissionStatus);
+  
+        if(permissionStatus === RESULTS.BLOCKED || RESULTS.UNAVAILABLE || RESULTS.LIMITED){
+          await request(PERMISSIONS.ANDROID.CAMERA)
+        }
+  
+        if(permissionStatus === RESULTS.GRANTED){
+          return true
+        }else{
+          return false
+        }
+      }catch(error){
+        console.log("Error while requesting permission",error)
+      } 
+    }
+
   //Capture photo function
-  const handleCapturePhoto = () => {
+  const handleCapturePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    console.log('hasPermission: ', hasPermission);
+
+    if(!hasPermission) return;
+
     const options = {
       mediaType: 'photo',
       quality: 1,
@@ -40,7 +69,7 @@ const ProductUpdatingScreen = () => {
 
     launchCamera(options, response => {
       if (response.didCancel) {
-        console.log('User cancalled to capture image');
+        console.log('User cancelled to capture image');
       } else if (response.errorMessage) {
         console.log('Error while capturing image', response.errorMessage);
       } else {
@@ -66,23 +95,7 @@ const ProductUpdatingScreen = () => {
     });
   };
 
-  // Tax DropDown state
-  const [open, setOpen] = useState(false);
   const [value, setValue] = useState(null);
-  const [items, setItems] = useState([
-    {label: 'Option 1', value: 'option1'},
-    {label: 'Option 2', value: 'option2'},
-    {label: 'Option 3', value: 'option3'},
-  ]);
-
-  // Category dropdown state
-  const [open1, setOpen1] = useState(false);
-  const [value1, setValue1] = useState(null);
-  const [items1, setItems1] = useState([
-    {label: 'Option 1', value: 'option1'},
-    {label: 'Option 2', value: 'option2'},
-    {label: 'Option 3', value: 'option3'},
-  ]);
 
   //Generating Product ID
   const [productId, setProductId] = useState('');

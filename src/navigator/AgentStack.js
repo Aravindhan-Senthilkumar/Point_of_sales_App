@@ -11,6 +11,7 @@ import InvoiceGenerationScreen from '../screens/InvoiceGenerationScreen';
 import FileViewer from 'react-native-file-viewer';
 import notifee, {EventType} from '@notifee/react-native';
 
+
 const Stack = createNativeStackNavigator();
 
 const AgentStack = () => {
@@ -31,15 +32,15 @@ const AgentStack = () => {
             }
         })
 
-        notifee.onBackgroundEvent(async ({ type,detail }) => {
-            if(type === EventType.PRESS){
-                const filePath = detail.notification?.data?.filePath
+        notifee.getInitialNotification().then(async (initialnotification) => {
+            if(initialnotification){
+                const filePath = initialnotification.notification?.data?.filePath
                 if(filePath){
                     try{
                         await FileViewer.open(filePath,{ showOpenWithDialog:true })
-                        console.log("Opening the downloaded pdf invoice successfully")
+                        console.log("Opening the downloaded pdf invoice successfully in killed state")
                     }catch(error){
-                        console.log("Error while opening invoice",error)
+                        console.log("Error while opening invoice when app is in killed state",error)
                     }
                 }
             }

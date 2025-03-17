@@ -302,17 +302,17 @@ const AdminHomePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('ListProduct')}>
+            onPress={() => navigation.navigate('AssignScreen')}>
             <MaterialCommunityIcons
               name="format-list-bulleted"
               size={30}
               color="black"
             />
-            <Text style={styles.AdminDashboardText}>List Products</Text>
+            <Text style={styles.AdminDashboardText}>Assign Agents</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('ViewReports')}>
+            onPress={() => navigation.navigate('AssignScreen')}>
             <MaterialCommunityIcons
               name="file-document"
               size={30}

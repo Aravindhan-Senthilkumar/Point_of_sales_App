@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import React, {useRef, useState} from 'react';
 import {colors} from '../constants/colors';
@@ -22,6 +23,7 @@ import {Overlay} from '@rneui/themed';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import useProductStore from '../store/useProductStore';
 import {Dropdown} from 'react-native-element-dropdown';
+import { check, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 
 const ProductAddingScreen = () => {
   const navigation = useNavigation();
@@ -29,17 +31,43 @@ const ProductAddingScreen = () => {
   //State Updates
   const [imageUri, setImageUri] = useState(null);
 
+  //Request camera permission
+  const requestCameraPermission = async () => {
+    try{
+      if(Platform.OS !== 'android') return true;
+
+      let permissionStatus = await check(PERMISSIONS.ANDROID.CAMERA)
+      console.log('permissionStatus: ', permissionStatus);
+
+      if(permissionStatus === RESULTS.BLOCKED || RESULTS.UNAVAILABLE || RESULTS.LIMITED){
+        await request(PERMISSIONS.ANDROID.CAMERA)
+      }
+
+      if(permissionStatus === RESULTS.GRANTED){
+        return true
+      }else{
+        return false
+      }
+    }catch(error){
+      console.log("Error while requesting permission",error)
+    } 
+  }
+
   //Capture photo function
-  const handleCapturePhoto = () => {
+  const handleCapturePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+
+    if(!hasPermission) return;
+
     const options = {
       mediaType: 'photo',
       quality: 1,
       saveToPhotos: true,
     };
-
+    
     launchCamera(options, response => {
       if (response.didCancel) {
-        console.log('User cancalled to capture image');
+        console.log('User cancelled to capture image');
       } else if (response.errorMessage) {
         console.log('Error while capturing image', response.errorMessage);
       } else {

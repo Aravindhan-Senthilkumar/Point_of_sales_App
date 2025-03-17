@@ -14,11 +14,12 @@ import Feather from 'react-native-vector-icons/Feather'
 import { getFirestore } from '@react-native-firebase/firestore';
 import useProductStore from '../store/useProductStore';
 import { ActivityIndicator } from 'react-native-paper';
+import { SearchBar } from '@rneui/themed';
 
 const AddedProductsList = () => {
   const navigation = useNavigation();
   const [isScanning, setIsScanning] = useState(false);
-  const [productListsData,setProductListsData] = useState();
+  const [productListsData,setProductListsData] = useState([]);
   console.log('productListsData: ', productListsData);
   const { isProductUpdated,setIsProductUpdated } = useProductStore();
   console.log(isProductUpdated);
@@ -95,6 +96,18 @@ const AddedProductsList = () => {
     }
   }
   const [loading, setLoading] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const filteredProducts = productListsData.filter((item) => (
+    item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    || item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim())
+  ))
+
+  //   const filteredProducts = productListsData.filter((item) => (item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+  //   item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim()
+  // )))
+  //   console.log('filteredProducts: ', filteredProducts);
   return (
     <View style={styles.container}>
 
@@ -111,6 +124,24 @@ const AddedProductsList = () => {
         />
       </Appbar.Header>
 
+      <SearchBar
+      autoCapitalize='sentences'
+      placeholder='Search products'
+      value={searchQuery}
+      onChangeText={(text) => setSearchQuery(text)} 
+      containerStyle={{ backgroundColor:colors.halfWhite,borderColor:colors
+        .halfWhite
+       }}
+       inputContainerStyle={{ 
+        backgroundColor:colors.lightGray,
+        borderRadius:dimensions.xl,
+        padding:0,
+        height:dimensions.xl * 1.3,
+      }}
+      leftIconContainerStyle={{ marginLeft:dimensions.md }}
+      rightIconContainerStyle={{  marginRight:dimensions.sm }}
+      inputStyle={{ fontSize:dimensions.sm * 1.15 }}
+      />
       {/* Tooltip for Add Product */}
       <View style={styles.plusIconContainer}>
         <FAB
@@ -183,7 +214,11 @@ const AddedProductsList = () => {
         : (
           <FlatList
       showsVerticalScrollIndicator={false}
-      data={productListsData}
+      data={
+        searchQuery.trim()
+        ? filteredProducts
+        : productListsData
+      }
       renderItem={({ item }) => {
         return (
         <View style={{ marginHorizontal:dimensions.sm / 2 }}>
@@ -232,9 +267,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerText: {
-    color: colors.pureWhite,
     fontFamily: fonts.bold,
-    fontSize: dimensions.sm * 2,
+    fontSize: dimensions.sm * 1.5,
   },
   container: {
     backgroundColor: colors.halfWhite,
@@ -266,18 +300,6 @@ const styles = StyleSheet.create({
   cardContainer: {
     marginVertical: dimensions.sm / 2,
     justifyContent: 'center',
-  },
-  headerContainer: {
-    backgroundColor: colors.orange,
-    height: dimensions.xl * 2.25,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerText: {
-    color: colors.pureWhite,
-    fontFamily: fonts.bold,
-    fontSize: dimensions.md,
   },
   scannerContainer: {
     ...StyleSheet.absoluteFillObject, 

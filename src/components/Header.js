@@ -2,11 +2,14 @@ import { StyleSheet, View } from 'react-native'
 import React from 'react'
 import { colors } from '../constants/colors'
 import { dimensions } from '../constants/dimensions'
+import { Appbar } from 'react-native-paper'
 
 const Header = () => {
 
   return (
-    <View style={styles.container}>
+    <View>
+      <Appbar.Header style={styles.headerContainer}>
+      </Appbar.Header>
     </View>
   )
 }
@@ -15,9 +18,11 @@ const Header = () => {
 export default Header
 
 const styles = StyleSheet.create({
-  container:{
-    backgroundColor:colors.orange,
-    height:dimensions.xl * 2.25,
-    width:'100%'
+  headerContainer: {
+    backgroundColor: colors.orange,
+    height: dimensions.xl * 2.25,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 })

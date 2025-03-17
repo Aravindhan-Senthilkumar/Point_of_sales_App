@@ -3,8 +3,8 @@ import {
   StyleSheet,
   View,
   Image,
-  ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Appbar, Button, Text, TextInput, Modal, Badge } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import Foundation from 'react-native-vector-icons/Foundation';
 import { CheckBox, Dialog } from '@rneui/themed';
 
 const ProductDetailsScreen = () => {
@@ -23,6 +24,21 @@ const ProductDetailsScreen = () => {
   const [quantity, setQuantity] = useState(1);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isVisible, setIsVisible] = useState();
+  const [isOutofStockVisible,setisOutofStockVisible] = useState(false)
+  const [isStockLimitModalVisible,setIsStockLimitModalVisible] = useState(false)
+
+  const outOfStockModal = () => {
+    setisOutofStockVisible(true)
+    setTimeout(() => {
+      setisOutofStockVisible(false)
+    },700)
+  }
+  const stockLimitModal = () => {
+    setIsStockLimitModalVisible(true)
+    setTimeout(() => {
+      setIsStockLimitModalVisible(false)
+    },700)
+  }
 
   const handleSuccessAddition = () => {
     setIsVisible(true)
@@ -32,17 +48,23 @@ const ProductDetailsScreen = () => {
   }
   const handleAddToCart = () => {
     if (!selectedWeight) {
-      alert('Please select a weight');
+      Alert('Please select a weight');
       return;
     }
     const stock = product.Stocks.find((s) => s.weight === selectedWeight);
     if (!stock || quantity <= 0 || quantity > stock.stocks) {
-      alert('Invalid quantity or insufficient stock for selected weight');
+      outOfStockModal()
       return;
     }
+    
     const cartItem = cart.find((item) => item.productId === product.ProductId && item.weight === selectedWeight);
+
     try {
       if (cartItem) {
+        if(Number(cartItem.quantity) - Number(selectedStock.stocks) === 0){
+          stockLimitModal()
+          return;
+        }
         const newQuantity = cartItem.quantity + quantity
         updateQuantity(cartItem.productId, selectedWeight, newQuantity);
       } else {
@@ -52,7 +74,7 @@ const ProductDetailsScreen = () => {
       handleSuccessAddition()
       setCartItemUpdated(true)
     } catch (error) {
-      alert(error.message);
+      Alert.alert(error.message);
     }finally{
       setQuantity(1)
     }
@@ -185,7 +207,12 @@ const ProductDetailsScreen = () => {
             {selectedWeight && (
               <View style={styles.stockDetails}>
                 <Text style={styles.stockInfo}>
-                  Price:  <Text style={{ fontFamily:fonts.bold }}>₹ {selectedStock.price}</Text> | Stocks Available: <Text style={{ fontFamily:fonts.bold }}>{selectedStock.stocks}</Text>
+                  Price:  <Text style={{ fontFamily:fonts.bold }}>₹ {selectedStock.price}</Text> | Stocks Available: 
+                  {
+                    selectedStock.stocks === 0 
+                    ? (<Text style={{ fontFamily:fonts.bold,color:'red' }}> Out of Stock</Text>)
+                    : (<Text style={{ fontFamily:fonts.bold }}> {selectedStock.stocks}</Text>)
+                  }
                 </Text>
               </View>
             )}
@@ -235,6 +262,7 @@ const ProductDetailsScreen = () => {
             ) 
           }
         </View>
+      </View>
         <Modal
           visible={isVisible}
           contentContainerStyle={{
@@ -256,7 +284,49 @@ const ProductDetailsScreen = () => {
             </Text>
           </View>
         </Modal>
-      </View>
+        {/* Out of stock Modal */}
+        <Modal 
+        visible={isOutofStockVisible}
+        contentContainerStyle={{
+          backgroundColor: colors.pureWhite,
+          height: dimensions.height / 4,
+          margin: dimensions.xl,
+          borderRadius: dimensions.sm,
+        }}
+        >
+          <View style={{alignItems: 'center'}}>
+             <Foundation
+                        name="alert"
+                        color={colors.red}
+                        size={dimensions.width / 4}
+                      />
+            <Text
+              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
+                Out of Stock
+            </Text>
+          </View>
+        </Modal>
+        <Modal 
+        visible={isStockLimitModalVisible}
+        contentContainerStyle={{
+          backgroundColor: colors.pureWhite,
+          height: dimensions.height / 4,
+          margin: dimensions.xl,
+          borderRadius: dimensions.sm,
+        }}
+        >
+          <View style={{alignItems: 'center'}}>
+             <Foundation
+                        name="alert"
+                        color={colors.red}
+                        size={dimensions.width / 4}
+                      />
+            <Text
+              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
+                Stocks limit reached
+            </Text>
+          </View>
+        </Modal>
     </View>
   );
 };

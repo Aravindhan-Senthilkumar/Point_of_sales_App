@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import {
   StyleSheet,
   View,
@@ -29,10 +29,12 @@ import {
   checkManagePermission,
   requestManagePermission,
 } from 'manage-external-storage';
+import useProductStore from '../store/useProductStore';
 
 const PaymentScreen = () => {
   const navigation = useNavigation();
   const {cart, total, clearCart, setPaymentConfirmation} = useCartStore();
+  console.log('cart: ', cart);
   const {agent} = useAgentStore();
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -53,6 +55,8 @@ const PaymentScreen = () => {
   const [alertVisible, setAlertVisible] = useState(false);
   const [upiGateWayModal, setUpiGateWayModal] = useState(false);
   const upiId = 'Ukinfotech@okicici';
+  const { setIsProductUpdated } = useProductStore();
+
   const renderCartItem = (item, index) => (
     <View key={`${item.productId}-${index}`} style={styles.cartItem}>
       <Image
@@ -77,7 +81,7 @@ const PaymentScreen = () => {
           <Text style={[styles.itemName, {fontFamily: fonts.semibold}]}>
             Weight:{' '}
           </Text>
-          {item.weight}
+          {item.weight} (₹ {item.price})
         </Text>
         <Text style={styles.itemName}>
           <Text style={[styles.itemName, {fontFamily: fonts.semibold}]}>
@@ -100,6 +104,8 @@ const PaymentScreen = () => {
     } else {
       setPaymentGatewayVisible(true);
     }
+
+    
   };
 
   const [loading, setLoading] = useState(false);
@@ -110,15 +116,12 @@ const PaymentScreen = () => {
 
   const [invoiceData, setInvoiceData] = useState({});
   console.log('invoiceData: ', invoiceData);
+  const orderData = {
+    products: cart,
+  };
 
-  const handlePaymentSuccess = async () => {
-    setLoading(true);
-    try {
-      const orderRef = getFirestore().collection('orders').doc(agent.AgentID);
-      let orderData = {
-        products: cart,
-      };
-      let newErrors = {};
+  const orderDataSetting = () => {
+    let newErrors = {};
       if (paymentMethod === 'Credit') {
         if (creditPayValue === 'FullPayCredit') {
           orderData.PaymentMethod = 'Credit';
@@ -176,44 +179,64 @@ const PaymentScreen = () => {
           orderedAt: Date.now().toString(),
         },
       });
-      await orderRef.set(
-        {
-          AgentID: agent.AgentID,
-          AgentName: agent.AgentName,
-          MobileNumber: agent.MobileNumber,
-          AgentAddress: agent.Address,
-          OrdersPending: firestore.FieldValue.arrayUnion({
-            AmountPaid: orderData.AmountPaid,
-            orderedAt: Date.now().toString(),
-            PaymentMethod: orderData.PaymentMethod,
-            products: orderData.products,
-          }),
-        },
-        {merge: true},
-      );
-      setPaymentGatewayVisible(false);
-      setCreditGateWayModal(false);
-      setUpiGateWayModal(false);
-      setOrderSuccessVisible(true);
-      return;
-    } catch (error) {
-      console.log('Error in internal server while payment processing:', error);
-      alert('Failed to process payment. Please try again.');
-    } finally {
-      setLoading(false);
+      return true
+  }
+
+
+  const handlePaymentSuccess = async () => {
+    setLoading(true);
+    const hasOrderDataSet = orderDataSetting();
+    if(hasOrderDataSet){
+      try {
+        const orderRef = getFirestore().collection('orders').doc(agent.AgentID);
+        await requestStoragePermission();
+        await orderRef.set(
+          {
+            AgentID: agent.AgentID,
+            AgentName: agent.AgentName,
+            MobileNumber: agent.MobileNumber,
+            AgentAddress: agent.Address,
+            OrdersPending: firestore.FieldValue.arrayUnion({
+              AmountPaid: orderData.AmountPaid,
+              orderedAt: Date.now().toString(),
+              PaymentMethod: orderData.PaymentMethod,
+              products: orderData.products,
+            }),
+          },
+          {merge: true},
+        );
+        await updateStockAfterPurchase();
+        setPaymentGatewayVisible(false);
+        setCreditGateWayModal(false);
+        setUpiGateWayModal(false);
+        setOrderSuccessVisible(true);
+        return;
+      } catch (error) {
+        console.log('Error in internal server while payment processing:', error);
+        alert('Failed to process payment. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   const handleCloseSuccess = async () => {
+    setpdfGenerationLoading(true)
     try {
-      setpdfGenerationLoading(true);
-      await generatePdf();
-      setPaymentConfirmation(true);
-      // clearCart();
-      setOrderSuccessVisible(false);
-      navigation.goBack();
+      const hasPermission = await generatePdf();
+      if(hasPermission){
+        setPaymentConfirmation(true);
+        clearCart();
+        setOrderSuccessVisible(false);
+        setIsProductUpdated(true);
+        navigation.replace('AgentProductsListScreen');
+      }else{
+        console.log("Invoice generated successfully without sending notifications")
+      }
     } catch (error) {
       console.log('Error while making order', error);
+    }finally{
+      setpdfGenerationLoading(false)
     }
   };
 
@@ -329,7 +352,7 @@ const PaymentScreen = () => {
     const ordersHtml = cart
       .map(
         item => `<tr style="border-bottom: 1px solid #ddd;">
-    <td style="padding: 10px;">${item.productName}</td>
+    <td style="padding: 10px;">${item.productName} (${item.weight})</td>
     <td style="padding: 10px;">₹ ${item.price}</td>
     <td style="padding: 10px;">${item.quantity}</td>
     <td style="padding: 10px;">₹ ${item.price * item.quantity}</td>
@@ -475,9 +498,6 @@ const PaymentScreen = () => {
       </body>
       </html>`;
 
-    const permissionGranted = await requestStoragePermission();
-    console.log('permissionGranted: ', permissionGranted);
-
     const options = {
       html: htmlContent,
       fileName: `invoice_${uid}_${data.OrdersPending.PaymentMethod}-${safeFormattedDate}`,
@@ -491,10 +511,10 @@ const PaymentScreen = () => {
       console.log('newPath: ', newPath);
       await RNFS.moveFile(file.filePath, newPath);
       await showNotification(newPath, invoiceName);
+      return true;
     } catch (error) {
       console.log('Error while generating Invoice PDF', error);
-    } finally {
-      setpdfGenerationLoading(false);
+      return false
     }
   };
 
@@ -513,12 +533,49 @@ const PaymentScreen = () => {
       android: {
         channelId,
         pressAction: {
-          id: 'open-invoice',
+          id: 'default',
         },
       },
       data: {filePath},
     });
   };
+
+  const updateStockAfterPurchase  = async () => {
+    const requiredCartItems = cart.map((item) => ({
+      productId: item.productId,
+      weight: item.weight,
+      quantity: item.quantity,
+      stocks: item.stocks
+    }))
+    console.log('requiredCartItems: ', requiredCartItems);
+    try{
+      for(const item of requiredCartItems){
+        const { quantity,productId,weight } = item;
+        const productRef = await getFirestore().collection('products').doc(String(productId))
+        const productSnap = await productRef.get()
+        const productData = productSnap.data()
+        console.log('productData: ', productData);
+
+        const updatedStocks = productData.Stocks.map((stockitem) => {
+          if(stockitem.weight === weight){
+            return {
+              ...stockitem,
+              stocks: stockitem.stocks - quantity >= 0 ? (stockitem.stocks - quantity) : 0 
+            }
+          }
+          return stockitem;
+        })
+        
+        console.log('updatedStocks: ', updatedStocks);
+        await productRef.update({ Stocks
+          :updatedStocks })
+          console.log(`Stock updated for Product ID ${productId}, Weight: ${weight}`);
+      }
+      console.log("Stock update process completed.");
+    }catch(error){
+      console.log("Error in internal server while entering stocks",error)
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -625,25 +682,27 @@ const PaymentScreen = () => {
         </View>
 
         {/* Products List from Cart */}
-        <View style={styles.section}>
+        <View style={[styles.section,{ marginBottom:dimensions.md * 7 }]}>
           <Text style={styles.label}>Order Summary</Text>
           {cart.length > 0 ? (
             cart.map((item, index) => renderCartItem(item, index))
           ) : (
             <Text style={styles.emptyCart}>No items in cart</Text>
           )}
-          <Text style={styles.totalText}>Total: ₹ {total}</Text>
         </View>
-
-        {/* Pay Button */}
-        <Button
-          mode="contained"
-          onPress={handlePayment}
-          style={styles.payButton}
-          textColor={colors.pureWhite}>
-          Pay Now
-        </Button>
       </ScrollView>
+      <View style={styles.footer}>
+      <Text style={styles.totalText}>Total: ₹ {total}</Text>
+        <Button
+          onPress={handlePayment}
+          mode="contained"
+          style={styles.proceedButton}
+          textColor={colors.pureWhite}>
+          Proceed to Payment
+        </Button>
+      </View>
+
+
 
       {/* Payment Method Modal Alert */}
       <Modal
@@ -1297,6 +1356,27 @@ const styles = StyleSheet.create({
     borderRadius: dimensions.sm / 2,
     width: dimensions.width / 2,
   },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.pureWhite,
+    padding: dimensions.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+    elevation: 4,
+  },
+  totalText: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
+    color: colors.black,
+    marginBottom: dimensions.sm,
+    textAlign: 'center',
+  },
+  proceedButton: {
+    backgroundColor: colors.darkblue,
+  }
 });
 
 export default PaymentScreen;

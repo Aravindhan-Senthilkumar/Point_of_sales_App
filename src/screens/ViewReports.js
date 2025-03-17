@@ -4,13 +4,15 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  Image,
   TouchableOpacity,
 } from 'react-native';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {getFirestore} from '@react-native-firebase/firestore';
 import {useNavigation} from '@react-navigation/native';
+import { Appbar, Card } from 'react-native-paper';
+import { fonts } from '../constants/fonts';
+
 
 const ViewReports = () => {
   const navigation = useNavigation();
@@ -21,7 +23,7 @@ const ViewReports = () => {
     const fetchPendingOrders = async () => {
       try {
         const data = await (
-          await getFirestore().collection('orders').get()
+          await getFirestore().collection('products').get()
         ).docs;
         const mapData = data.map(doc => ({
           data: doc.data(),
@@ -37,23 +39,46 @@ const ViewReports = () => {
   // Render item function for FlatList
 
   return (
-    <View style={styles.container}>
+    <View>
+      <Appbar.Header style={styles.headerContainer}>
+        <Appbar.BackAction
+          onPress={() => navigation.goBack()}
+          color={colors.pureWhite}
+        />
+        <Appbar.Content
+          title="Add Product Details"
+          color={colors.pureWhite}
+          titleStyle={styles.headerText}
+        />
+      </Appbar.Header>
       <FlatList
         data={pendingOrders}
         renderItem={({item}) => {
           console.log(item);
           return (
-            <TouchableOpacity
-              style={styles.cartItem}
-              onPress={() =>
-                navigation.navigate('PendingOrders', {
-                  item: item.data.OrdersPending,
-                })
-              }>
-              <Text>Agent Name:{item.data.AgentName}</Text>
-              <Text>Agent Id:{item.data.AgentID}</Text>
-              <Text>Agent Number:{item.data.MobileNumber}</Text>
-            </TouchableOpacity>
+            <View style={{ marginHorizontal:dimensions.sm / 2 }}>
+                    <Card contentStyle={{ backgroundColor:colors.pureWhite,paddingHorizontal:dimensions.md,borderRadius:dimensions.sm }} mode="elevated" style={styles.cardContainer} onPress={() => navigation.navigate('StockListingScreen', { item })}>
+                    <View style={{flexDirection: 'row'}}>
+                      <Card.Cover
+                        source={{uri: item.data.ProductImage}}
+                        style={styles.CardImage}
+                        />
+                      <View style={{justifyContent:'center'}}>
+                        <Card.Content>
+                          <View
+                            style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                            <View style={{ flexDirection:'row', justifyContent:'space-between',alignItems:'center',width:'85%'}}>
+                            <Text style={{ fontFamily:fonts.regular }}>Product Id: <Text style={{ fontFamily:fonts.semibold }}> {item.data.ProductId}</Text></Text>
+                            </View>
+                          </View>
+                          <Text style={{ fontFamily:fonts.regular }}>Product Name: <Text style={{ fontFamily:fonts.semibold }}> {item.data.ProductName}</Text></Text>
+                          <Text style={{ fontFamily:fonts.regular }}>Brand: <Text style={{ fontFamily:fonts.semibold }}> {item.data.BrandName}</Text></Text>
+                          <Text style={{ fontFamily:fonts.regular }}>Category: <Text style={{ fontFamily:fonts.semibold }}> {item.data.Category}</Text></Text>
+                        </Card.Content>
+                      </View>
+                    </View>
+                  </Card>
+                  </View>
           );
         }}
       />
@@ -64,7 +89,7 @@ const ViewReports = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: colors.halfWhite,
   },
   item: {
     backgroundColor: colors.grayText,
@@ -83,6 +108,26 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  CardImage: {
+    height: dimensions.width / 4,
+    width: dimensions.width / 4,
+    marginVertical: dimensions.sm,
+  },
+  cardContainer: {
+    marginVertical: dimensions.sm / 2,
+    justifyContent: 'center',
+  },headerContainer: {
+    backgroundColor: colors.orange,
+    height: dimensions.xl * 2.25,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerText: {
+    color: colors.pureWhite,
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
   },
 });
 
