@@ -25,6 +25,8 @@ import useAuthStore from '../store/useAuthStore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import useCartStore from '../store/useCartStore';
 import FastImage from 'react-native-fast-image';
+import { Button as RNEUButton } from '@rneui/themed'; 
+
 
 const AgentLogin = () => {
 
@@ -233,24 +235,11 @@ const AgentLogin = () => {
             ))}
           </View>
             <View>
-              <TouchableOpacity
-                style={styles.LoginContainer}
-                onPress={loading ? null : handleLogin}>
-                <LinearGradient
-                  colors={[colors.orange, colors.darkblue]}
-                  start={{x: 1, y: 0}}
-                  end={{x: 0, y: 1}}
-                  style={styles.gradient}>
-                  {loading ? (
-                    <ActivityIndicator
-                      animating={true}
-                      color={MD2Colors.white}
-                    />
-                  ) : (
-                    <Text style={styles.loginText}>Login</Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+            <RNEUButton loading={loading} onPress={loading ? null : handleLogin}  ViewComponent={LinearGradient} linearGradientProps={{
+    colors: [colors.orange, colors.darkblue],
+    start: { x: 0, y: 0.5 },
+    end: { x: 1, y: 0.5 },
+  }} buttonStyle={{ width:dimensions.width/2,borderRadius:dimensions.sm,height:dimensions.sm * 3 }} titleStyle={{ fontFamily:fonts.bold }}>Login</RNEUButton>
             </View>
         </View>
 

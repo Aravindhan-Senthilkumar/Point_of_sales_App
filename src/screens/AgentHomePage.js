@@ -20,10 +20,10 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import useAuthStore from '../store/useAuthStore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import useCartStore from '../store/useCartStore';
-import {ActivityIndicator, Appbar, Badge, Button, Modal} from 'react-native-paper';
+import {ActivityIndicator, Badge, Button, Modal} from 'react-native-paper';
 import BackgroundService from 'react-native-background-actions';
 import useBackupStore from '../store/useBackupStore';
-import {PERMISSIONS, request} from 'react-native-permissions';
+import {request} from 'react-native-permissions';
 import Header from '../components/Header';
 
 const AgentHomePage = () => {
@@ -290,8 +290,7 @@ const AgentHomePage = () => {
       <Header />
 
       <View style={styles.mainContainer}>
-        <Text style={styles.WelcomeText}>AGENT DASHBOARD</Text>
-
+        <Text style={styles.dashBoardText}>{agent.AgentName} - {agent.AgentID}</Text>
         <View style={styles.grid}>
           <TouchableOpacity
             style={styles.card}
@@ -318,7 +317,7 @@ const AgentHomePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('ListProduct')}>
+            onPress={() => navigation.navigate('TodaySalesScreen')}>
             <MaterialCommunityIcons
               name="format-list-bulleted"
               size={30}
@@ -442,11 +441,11 @@ const styles = StyleSheet.create({
   mainContainer: {
     marginVertical: dimensions.xl * 2,
     alignItems: 'center',
-    gap: dimensions.md,
+    gap: dimensions.sm,
   },
   WelcomeText: {
     fontFamily: fonts.medium,
-    fontSize: dimensions.xl,
+    fontSize: dimensions.md,
   },
   grid: {
     width: '100%',
@@ -470,5 +469,12 @@ const styles = StyleSheet.create({
   },
   AdminDashboardText: {
     fontFamily: fonts.regular,
+  },
+  dashBoardText:{
+    fontFamily: fonts.medium,
+    fontSize: dimensions.sm * 2,
+  },
+  innerWelcomeText:{
+    fontFamily:fonts.light
   }
 });

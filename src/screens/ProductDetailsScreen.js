@@ -5,6 +5,7 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Appbar, Button, Text, TextInput, Modal, Badge } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -52,7 +53,7 @@ const ProductDetailsScreen = () => {
       return;
     }
     const stock = product.Stocks.find((s) => s.weight === selectedWeight);
-    if (!stock || quantity <= 0 || quantity > stock.stocks) {
+    if (!stock || quantity <= 0 || quantity > stock.assignedValue) {
       outOfStockModal()
       return;
     }
@@ -61,7 +62,7 @@ const ProductDetailsScreen = () => {
 
     try {
       if (cartItem) {
-        if(Number(cartItem.quantity) - Number(selectedStock.stocks) === 0){
+        if(Number(cartItem.quantity) - Number(selectedStock.assignedValue) === 0){
           stockLimitModal()
           return;
         }
@@ -83,7 +84,7 @@ const ProductDetailsScreen = () => {
   const incrementQuantity = () => {
     const stock = product.Stocks.find((s) => s.weight === selectedWeight);
     if (stock) {
-      setQuantity((prev) => Math.min(prev + 1, stock.stocks));
+      setQuantity((prev) => Math.min(prev + 1, stock.assignedValue));
     }
   };
 
@@ -95,7 +96,7 @@ const ProductDetailsScreen = () => {
     const newQuantity = parseInt(text) || 0;
     const stock = product.Stocks.find((s) => s.weight === selectedWeight);
     if (stock) {
-      setQuantity(Math.max(0, Math.min(newQuantity, stock.stocks)));
+      setQuantity(Math.max(0, Math.min(newQuantity, stock.assignedValue)));
     }
   };
 
@@ -123,7 +124,7 @@ const ProductDetailsScreen = () => {
       </View>
       </Appbar.Header>
 
-      <View style={styles.scrollContainer}>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContainer}>
         {/* Product Image */}
 
         {/* Product Details */}
@@ -211,7 +212,7 @@ const ProductDetailsScreen = () => {
                   {
                     selectedStock.stocks === 0 
                     ? (<Text style={{ fontFamily:fonts.bold,color:'red' }}> Out of Stock</Text>)
-                    : (<Text style={{ fontFamily:fonts.bold }}> {selectedStock.stocks}</Text>)
+                    : (<Text style={{ fontFamily:fonts.bold }}> {selectedStock.assignedValue}</Text>)
                   }
                 </Text>
               </View>
@@ -262,7 +263,7 @@ const ProductDetailsScreen = () => {
             ) 
           }
         </View>
-      </View>
+      </ScrollView>
         <Modal
           visible={isVisible}
           contentContainerStyle={{
@@ -348,8 +349,8 @@ const styles = StyleSheet.create({
     color: colors.pureWhite,
   },
   scrollContainer: {
-    marginVertical:dimensions.sm,
     flex: 1,
+    marginTop:dimensions.sm/2
   },
   imageContainer: {
     alignItems: 'center',
@@ -417,10 +418,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: dimensions.sm,
     marginHorizontal:dimensions.xl,
     gap:dimensions.md,
-    marginTop:dimensions.md
   },
   quantityButton: {
     flex:1,

@@ -13,13 +13,13 @@ const useCartStore = create(
             console.error('Weight not found for product:', product.ProductId, weight);
             throw new Error('Weight not found');
           }
-          if (quantity <= 0 || quantity > stock.stocks) {
+          if (quantity <= 0 || quantity > stock.assignedValue) {
             throw new Error('Invalid quantity or insufficient stock');
           }
           return {
             cart: [
               ...state.cart,
-              { productId: product.ProductId, weight, quantity, price: stock.price, stocks: stock.stocks,productName:product.ProductName,productImage:product.ProductImage }, // Store available stocks for validation
+              { productId: product.ProductId, weight, quantity, price: stock.price, stocks: stock.assignedValue,productName:product.ProductName,productImage:product.ProductImage }, // Store available stocks for validation
             ],
           };
         }),

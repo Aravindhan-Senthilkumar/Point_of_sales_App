@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
 } from 'react-native';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
@@ -12,6 +11,7 @@ import {getFirestore} from '@react-native-firebase/firestore';
 import {useNavigation} from '@react-navigation/native';
 import { Appbar, Card } from 'react-native-paper';
 import { fonts } from '../constants/fonts';
+import { ListItem } from '@rneui/themed';
 
 
 const ViewReports = () => {
@@ -37,7 +37,7 @@ const ViewReports = () => {
   }, []);
 
   // Render item function for FlatList
-
+  const [expanded, setExpanded] = useState(false);
   return (
     <View>
       <Appbar.Header style={styles.headerContainer}>
@@ -46,12 +46,12 @@ const ViewReports = () => {
           color={colors.pureWhite}
         />
         <Appbar.Content
-          title="Add Product Details"
+          title="Reports"
           color={colors.pureWhite}
           titleStyle={styles.headerText}
         />
       </Appbar.Header>
-      <FlatList
+      {/* <FlatList
         data={pendingOrders}
         renderItem={({item}) => {
           console.log(item);
@@ -81,7 +81,20 @@ const ViewReports = () => {
                   </View>
           );
         }}
-      />
+      /> */}
+      <ListItem.Accordion
+      containerStyle={{ marginVertical:dimensions.sm,marginHorizontal:dimensions.sm/2,borderRadius:dimensions.sm }} 
+      isExpanded={expanded}
+      onPress={() => setExpanded(!expanded)}
+      content={(
+          <ListItem.Content selectable={true} selectionColor={colors.darkblue}>
+          <ListItem.Title style={{ fontFamily:fonts.bold }}>Date </ListItem.Title>
+          <ListItem.Subtitle style={{ fontFamily:fonts.regular}}>Sold stocks</ListItem.Subtitle>
+          <ListItem.Subtitle style={{ fontFamily:fonts.regular}}>Remaining stocks</ListItem.Subtitle>
+          </ListItem.Content>
+    )}>
+      
+      </ListItem.Accordion>
     </View>
   );
 };

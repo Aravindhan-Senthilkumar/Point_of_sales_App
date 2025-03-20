@@ -427,40 +427,19 @@ const AdminLogin = () => {
 
           {isLogin ? (
             <View>
-              <TouchableOpacity
-                style={styles.LoginContainer}
-                onPress={
-                  () => handleRestoreNeeded()
-                }>
-                <LinearGradient
-                  colors={[colors.orange, colors.darkblue]}
-                  start={{x: 1, y: 0}}
-                  end={{x: 0, y: 1}}
-                  style={styles.gradient}>
-                  <Text style={styles.loginText}>Proceed to HomePage</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+              <Button onPress={handleRestoreNeeded}  ViewComponent={LinearGradient} linearGradientProps={{
+    colors: [colors.orange, colors.darkblue],
+    start: { x: 0, y: 0.5 },
+    end: { x: 1, y: 0.5 },
+  }} buttonStyle={{ width:dimensions.width/1.5,borderRadius:dimensions.sm,height:dimensions.sm * 3 }} titleStyle={{ fontFamily:fonts.bold }}>Proceed to Homepage</Button>
             </View>
           ) : (
             <View>
-              <TouchableOpacity
-                style={styles.LoginContainer}
-                onPress={loading ? null : handleLogin}>
-                <LinearGradient
-                  colors={[colors.orange, colors.darkblue]}
-                  start={{x: 1, y: 0}}
-                  end={{x: 0, y: 1}}
-                  style={styles.gradient}>
-                  {loading ? (
-                    <ActivityIndicator
-                      animating={true}
-                      color={MD2Colors.white}
-                    />
-                  ) : (
-                    <Text style={styles.loginText}>Login</Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+  <Button loading={loading} onPress={loading ? null : handleLogin}  ViewComponent={LinearGradient} linearGradientProps={{
+    colors: [colors.orange, colors.darkblue],
+    start: { x: 0, y: 0.5 },
+    end: { x: 1, y: 0.5 },
+  }} buttonStyle={{ width:dimensions.width/1.5,borderRadius:dimensions.sm,height:dimensions.sm * 3 }} titleStyle={{ fontFamily:fonts.bold }}>Login</Button>
             </View>
           )}
         </ScrollView>

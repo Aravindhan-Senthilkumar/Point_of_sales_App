@@ -10,6 +10,8 @@ import PaymentScreen from '../screens/PaymentScreen';
 import InvoiceGenerationScreen from '../screens/InvoiceGenerationScreen';
 import FileViewer from 'react-native-file-viewer';
 import notifee, {EventType} from '@notifee/react-native';
+import ViewReports from '../screens/ViewReports';
+import TodaySalesScreen from '../screens/TodaySalesScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -59,6 +61,8 @@ const AgentStack = () => {
         <Stack.Screen name='PaymentScreen' component={PaymentScreen}/>
         <Stack.Screen name='CartScreen' component={CartScreen}/>
         <Stack.Screen name='InvoiceGenerationScreen' component={InvoiceGenerationScreen}/>
+        <Stack.Screen name='ViewReports' component={ViewReports}/>
+        <Stack.Screen name='TodaySalesScreen' component={TodaySalesScreen}/>
         </Stack.Navigator>
         </NavigationContainer>
     )

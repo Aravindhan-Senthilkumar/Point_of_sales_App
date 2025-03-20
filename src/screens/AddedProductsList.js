@@ -1,5 +1,11 @@
-import {Alert, FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
@@ -7,41 +13,41 @@ import {Appbar, Card, Text} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {FAB} from '@rneui/base';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {Camera,CameraType} from 'react-native-camera-kit';
+import {Camera, CameraType} from 'react-native-camera-kit';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
-import AntDesign from 'react-native-vector-icons/AntDesign'
-import Feather from 'react-native-vector-icons/Feather'
-import { getFirestore } from '@react-native-firebase/firestore';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Feather from 'react-native-vector-icons/Feather';
+import {getFirestore} from '@react-native-firebase/firestore';
 import useProductStore from '../store/useProductStore';
-import { ActivityIndicator } from 'react-native-paper';
-import { SearchBar } from '@rneui/themed';
+import {ActivityIndicator} from 'react-native-paper';
+import {SearchBar} from '@rneui/themed';
 
 const AddedProductsList = () => {
   const navigation = useNavigation();
   const [isScanning, setIsScanning] = useState(false);
-  const [productListsData,setProductListsData] = useState([]);
+  const [productListsData, setProductListsData] = useState([]);
   console.log('productListsData: ', productListsData);
-  const { isProductUpdated,setIsProductUpdated } = useProductStore();
+  const {isProductUpdated, setIsProductUpdated} = useProductStore();
   console.log(isProductUpdated);
   const fetchProductLists = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await getFirestore().collection('products').get();
-      const data = response.docs.map((item) => item.data());
+      const data = response.docs.map(item => item.data());
       console.log('Fetched products:', data);
       setProductListsData(data);
     } catch (error) {
-      console.error("Error while fetching product lists:", error);
-    }finally{
-      setLoading(false)
+      console.error('Error while fetching product lists:', error);
+    } finally {
+      setLoading(false);
     }
-  }, []); 
+  }, []);
   useEffect(() => {
     fetchProductLists();
   }, [fetchProductLists]);
 
   useEffect(() => {
-    setLoading(true)
+    setLoading(true);
     if (isProductUpdated) {
       fetchProductLists();
       setIsProductUpdated(false);
@@ -50,59 +56,70 @@ const AddedProductsList = () => {
 
   //Function to handle camera permission
   const handleBarCodeScan = async () => {
-    try{
-      const permissionStatus = await check(PERMISSIONS.ANDROID.CAMERA)
+    try {
+      const permissionStatus = await check(PERMISSIONS.ANDROID.CAMERA);
       console.log('permissionStatus: ', permissionStatus);
-      if(permissionStatus === RESULTS.GRANTED){
-        setIsScanning(true)
-      }else if(permissionStatus === RESULTS.DENIED || permissionStatus === RESULTS.UNAVAILABLE){
+      if (permissionStatus === RESULTS.GRANTED) {
+        setIsScanning(true);
+      } else if (
+        permissionStatus === RESULTS.DENIED ||
+        permissionStatus === RESULTS.UNAVAILABLE
+      ) {
         const result = await request(PERMISSIONS.ANDROID.CAMERA);
-        if(result === RESULTS.GRANTED){
+        if (result === RESULTS.GRANTED) {
           setIsScanning(true);
-        }else{
+        } else {
           Alert.alert(
             'Permission Denied',
             'Camera permission is required to scan barcodes. Please enable it in settings.',
           );
         }
-      }else if(permissionStatus === RESULTS.BLOCKED){
+      } else if (permissionStatus === RESULTS.BLOCKED) {
         Alert.alert(
           'Permission Blocked',
           'Camera permission is blocked. Please enable it in your device settings.',
         );
       }
-    }catch(error){
-      console.log("Error while requesting permission")
+    } catch (error) {
+      console.log('Error while requesting permission');
     }
-  }
+  };
   const cancelScanning = () => {
     setIsScanning(false);
     console.log('Barcode scanning cancelled');
   };
 
-  const findProductByBarcode = async (barcode) => {
-    try{
-      const querySnapShot = await getFirestore().collection('products').where('Barcode','==',barcode).get()
+  const findProductByBarcode = async barcode => {
+    try {
+      const querySnapShot = await getFirestore()
+        .collection('products')
+        .where('Barcode', '==', barcode)
+        .get();
       if (!querySnapShot.empty) {
-        querySnapShot.forEach((doc) => {
+        querySnapShot.forEach(doc => {
           const productData = doc.data();
-          navigation.navigate('ProductUpdatingScreen',{ item:productData })
+          navigation.navigate('ProductUpdatingScreen', {item: productData});
         });
       } else {
         setResult(`No product found with barcode: ${barcodeToSearch}`);
       }
-    }catch(error){
-      console.log("Error in internal server while searching a product",error)
+    } catch (error) {
+      console.log('Error in internal server while searching a product', error);
     }
-  }
+  };
   const [loading, setLoading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const filteredProducts = productListsData.filter((item) => (
-    item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim())
-    || item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim())
-  ))
+
+  const filteredProducts = productListsData.filter(
+    item =>
+      item.ProductName.toLowerCase().includes(
+        searchQuery.toLowerCase().trim(),
+      ) ||
+      item.ProductId.toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase().trim()),
+  );
 
   //   const filteredProducts = productListsData.filter((item) => (item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
   //   item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim()
@@ -110,7 +127,6 @@ const AddedProductsList = () => {
   //   console.log('filteredProducts: ', filteredProducts);
   return (
     <View style={styles.container}>
-
       {/* Header Container */}
       <Appbar.Header style={styles.headerContainer}>
         <Appbar.BackAction
@@ -125,22 +141,23 @@ const AddedProductsList = () => {
       </Appbar.Header>
 
       <SearchBar
-      autoCapitalize='sentences'
-      placeholder='Search products'
-      value={searchQuery}
-      onChangeText={(text) => setSearchQuery(text)} 
-      containerStyle={{ backgroundColor:colors.halfWhite,borderColor:colors
-        .halfWhite
-       }}
-       inputContainerStyle={{ 
-        backgroundColor:colors.lightGray,
-        borderRadius:dimensions.xl,
-        padding:0,
-        height:dimensions.xl * 1.3,
-      }}
-      leftIconContainerStyle={{ marginLeft:dimensions.md }}
-      rightIconContainerStyle={{  marginRight:dimensions.sm }}
-      inputStyle={{ fontSize:dimensions.sm * 1.15 }}
+        autoCapitalize="sentences"
+        placeholder="Search products"
+        value={searchQuery}
+        onChangeText={text => setSearchQuery(text)}
+        containerStyle={{
+          backgroundColor: colors.halfWhite,
+          borderColor: colors.halfWhite,
+        }}
+        inputContainerStyle={{
+          backgroundColor: colors.lightGray,
+          borderRadius: dimensions.xl,
+          padding: 0,
+          height: dimensions.xl * 1.3,
+        }}
+        leftIconContainerStyle={{marginLeft: dimensions.md}}
+        rightIconContainerStyle={{marginRight: dimensions.sm}}
+        inputStyle={{fontSize: dimensions.sm * 1.15}}
       />
       {/* Tooltip for Add Product */}
       <View style={styles.plusIconContainer}>
@@ -170,8 +187,7 @@ const AddedProductsList = () => {
           onPress={handleBarCodeScan}
         />
       </View>
-      {
-      isScanning && (
+      {isScanning && (
         <View style={styles.scannerContainer} pointerEvents="box-none">
           <Camera
             style={styles.camera}
@@ -180,78 +196,107 @@ const AddedProductsList = () => {
             showFrame={true}
             laserColor="red"
             frameColor="white"
-            onReadCode={async (event) => {
-              const barcode = event?.nativeEvent?.codeStringValue || event?.codeStringValue;
+            onReadCode={async event => {
+              const barcode =
+                event?.nativeEvent?.codeStringValue || event?.codeStringValue;
               if (barcode) {
-              findProductByBarcode(barcode);
-              setIsScanning(false);
+                findProductByBarcode(barcode);
+                setIsScanning(false);
               }
             }}
           />
           <TouchableOpacity
             style={styles.cancelButton}
-            onPress={cancelScanning}
-          >
+            onPress={cancelScanning}>
             <AntDesign
               name="close"
               size={dimensions.xl}
               color={colors.pureWhite}
             />
-          </TouchableOpacity> 
+          </TouchableOpacity>
         </View>
-      )
-      } 
-      {
-        loading 
-        ? (
-          <View style={{ justifyContent:'center',alignItems:'center',flex:1 }}>
-          <ActivityIndicator 
-          color={colors.darkblue}
-          size='large'
-          />
-          </View>
-        )
-        : (
-          <FlatList
-      showsVerticalScrollIndicator={false}
-      data={
-        searchQuery.trim()
-        ? filteredProducts
-        : productListsData
-      }
-      renderItem={({ item }) => {
-        return (
-        <View style={{ marginHorizontal:dimensions.sm / 2 }}>
-        <Card contentStyle={{ backgroundColor:colors.pureWhite,paddingHorizontal:dimensions.md,borderRadius:dimensions.sm }} mode="elevated" style={styles.cardContainer} onPress={() => navigation.navigate('ProductUpdatingScreen',{ item })}>
-        <View style={{flexDirection: 'row'}}>
-          <Card.Cover
-            source={{uri: item.ProductImage}}
-            style={styles.CardImage}
-            />
-          <View style={{justifyContent:'center'}}>
-            <Card.Content>
-              <View
-                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                <View style={{ flexDirection:'row', justifyContent:'space-between',alignItems:'center',width:'85%'}}>
-                <Text style={{ fontFamily:fonts.regular }}>Product Id: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductId}</Text></Text>
-                <Feather name="edit" size={dimensions.xl / 2} />
-                </View>
+      )}
+      {loading ? (
+        <View style={{justifyContent: 'center', alignItems: 'center', flex: 1}}>
+          <ActivityIndicator color={colors.darkblue} size="large" />
+        </View>
+      ) : (
+        <FlatList
+          showsVerticalScrollIndicator={false}
+          data={searchQuery.trim() ? filteredProducts : productListsData}
+          renderItem={({item}) => {
+            return (
+              <View style={{marginHorizontal: dimensions.sm / 2}}>
+                <Card
+                  contentStyle={{
+                    backgroundColor: colors.pureWhite,
+                    paddingHorizontal: dimensions.md,
+                    borderRadius: dimensions.sm,
+                  }}
+                  mode="elevated"
+                  style={styles.cardContainer}
+                  onPress={() =>
+                    navigation.navigate('ProductUpdatingScreen', {item})
+                  }>
+                  <View style={{flexDirection: 'row'}}>
+                    <Card.Cover
+                      source={{uri: item.ProductImage}}
+                      style={styles.CardImage}
+                    />
+                    <View style={{justifyContent: 'center'}}>
+                      <Card.Content>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                          }}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              width: '85%',
+                            }}>
+                            <Text style={{fontFamily: fonts.regular}}>
+                              Product Id:{' '}
+                              <Text style={{fontFamily: fonts.semibold}}>
+                                {' '}
+                                {item.ProductId}
+                              </Text>
+                            </Text>
+                            <Feather name="edit" size={dimensions.xl / 2} />
+                          </View>
+                        </View>
+                        <Text style={{fontFamily: fonts.regular}}>
+                          Product Name:{' '}
+                          <Text style={{fontFamily: fonts.semibold}}>
+                            {' '}
+                            {item.ProductName}
+                          </Text>
+                        </Text>
+                        <Text style={{fontFamily: fonts.regular}}>
+                          Brand:{' '}
+                          <Text style={{fontFamily: fonts.semibold}}>
+                            {' '}
+                            {item.BrandName}
+                          </Text>
+                        </Text>
+                        <Text style={{fontFamily: fonts.regular}}>
+                          Category:{' '}
+                          <Text style={{fontFamily: fonts.semibold}}>
+                            {' '}
+                            {item.Category}
+                          </Text>
+                        </Text>
+                      </Card.Content>
+                    </View>
+                  </View>
+                </Card>
               </View>
-              <Text style={{ fontFamily:fonts.regular }}>Product Name: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductName}</Text></Text>
-              <Text style={{ fontFamily:fonts.regular }}>Brand: <Text style={{ fontFamily:fonts.semibold }}> {item.BrandName}</Text></Text>
-              <Text style={{ fontFamily:fonts.regular }}>Category: <Text style={{ fontFamily:fonts.semibold }}> {item.Category}</Text></Text>
-            </Card.Content>
-          </View>
-        </View>
-      </Card>
-      </View>
-        );
-      }}
-      />
-        )
-
-      }  
-      
+            );
+          }}
+        />
+      )}
     </View>
   );
 };
@@ -302,7 +347,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scannerContainer: {
-    ...StyleSheet.absoluteFillObject, 
+    ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
     elevation: 1000,
   },
@@ -311,7 +356,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     position: 'absolute',
-    top:dimensions.xl * 1.75,
-    right:dimensions.md,
+    top: dimensions.xl * 1.75,
+    right: dimensions.md,
   },
 });

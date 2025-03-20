@@ -17,6 +17,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 const CartScreen = () => {
   const navigation = useNavigation();
   const { cart, removeFromCart, clearCart, setTotal, setCartItemUpdated, total,paymentConfirmation,setPaymentConfirmation } = useCartStore();
+  console.log('cart: ', cart);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   useEffect(() => {

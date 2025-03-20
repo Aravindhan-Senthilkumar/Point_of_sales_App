@@ -312,7 +312,7 @@ const AdminHomePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('AssignScreen')}>
+            onPress={() => navigation.navigate('View')}>
             <MaterialCommunityIcons
               name="file-document"
               size={30}

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
-import {Appbar, Card, Text} from 'react-native-paper';
+import {Appbar, Button, Card, Text} from 'react-native-paper';
 import { useNavigation} from '@react-navigation/native';
 import {FAB} from '@rneui/base';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -14,21 +14,36 @@ import { getFirestore } from '@react-native-firebase/firestore';
 import useProductStore from '../store/useProductStore';
 import { ActivityIndicator } from 'react-native-paper';
 import { SearchBar } from '@rneui/themed';
+import useAgentStore from '../store/useAgentStore';
 
 const AgentProductsListScreen = () => {
   const navigation = useNavigation();
   const [isScanning, setIsScanning] = useState(false);
   const [productListsData,setProductListsData] = useState([]);
+  console.log('productListsData: ', productListsData);
   const { isProductUpdated,setIsProductUpdated } = useProductStore();
-  console.log('isProductUpdated: ', isProductUpdated);
+  const { agent } = useAgentStore();
 
   const fetchProductLists = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await getFirestore().collection('products').get();
-      const data = response.docs.map((item) => item.data());
-      console.log('Fetched products:', data);
-      setProductListsData(data);
+      if (!agent?.AgentID) {
+        console.log("Error: Agent ID is missing or invalid.");
+        return;
+    }
+  
+    const agentDoc = await getFirestore()
+        .collection('agent-products')
+        .doc(agent.AgentID)
+        .get();
+  
+    if (!agentDoc.exists) {
+        console.log("No assigned products found for this agent.");
+        return;
+    }
+      const data = Object.values(agentDoc.data())
+      console.log('data: ', data);
+      setProductListsData(data.flat());
     } catch (error) {
       console.error("Error while fetching product lists:", error);
     }finally{
@@ -74,27 +89,40 @@ const AgentProductsListScreen = () => {
       console.log("Error while requesting permission")
     }
   }
+  
   const cancelScanning = () => {
     setIsScanning(false);
     console.log('Barcode scanning cancelled');
   };
 
-  const findProductByBarcode = async (barcode) => {
-    try{
-      const querySnapShot = await getFirestore().collection('products').where('Barcode','==',barcode).get()
-      if (!querySnapShot.empty) {
-        querySnapShot.forEach((doc) => {
-          const productData = doc.data();
-          console.log('productData: ', productData);
-          navigation.navigate('ProductDetailsScreen',{ item:productData })
-        });
-      } else {
-        console.log(`No product found with barcode: ${barcodeToSearch}`);
+  const findProductUsingBarcode = async (barcode) => {
+    try {
+      const querySnapShot = await (await getFirestore().collection('agent-products').doc(agent.AgentID).get()).data();
+      
+      if (!querySnapShot) {
+        console.log("No products found for this agent.");
+        return;
       }
-    }catch(error){
-      console.log("Error in internal server while searching a product",error)
+  
+      // Flatten the object values to get an array of products
+      const valueSnapShot = Object.values(querySnapShot).flat();
+      console.log('All agent products:', valueSnapShot);
+  
+      // Find the product with the given barcode
+      const foundProduct = valueSnapShot.find(product => product.Barcode === barcode);
+  
+      if (foundProduct) {
+        console.log('Product found:', foundProduct);
+        navigation.navigate('ProductDetailsScreen',{ item:foundProduct })
+      } else {
+        console.log('No product found with this barcode.');
+        return null;
+      }
+    } catch (error) {
+      console.log("Error in internal server while searching for product using barcode:", error);
     }
-  }
+  };
+
   const [loading, setLoading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,7 +130,7 @@ const AgentProductsListScreen = () => {
   const filteredProducts = productListsData.filter((item) => (item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
   item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim()
 )))
-  console.log('filteredProducts: ', filteredProducts);
+
   return (
     <View style={styles.container}>
 
@@ -165,7 +193,7 @@ const AgentProductsListScreen = () => {
             onReadCode={async (event) => {
               const barcode = event?.nativeEvent?.codeStringValue || event?.codeStringValue;
               if (barcode) {
-              findProductByBarcode(barcode);
+              findProductUsingBarcode(barcode);
               setIsScanning(false);
               }
             }}
@@ -183,6 +211,7 @@ const AgentProductsListScreen = () => {
         </View>
       )
       } 
+      
       {
         loading 
         ? (
@@ -196,12 +225,11 @@ const AgentProductsListScreen = () => {
         : (
           <FlatList
       showsVerticalScrollIndicator={false}
-      data={
-        searchQuery.trim() 
+      data={searchQuery.trim() 
         ? filteredProducts
-        : productListsData
-      }
+        : productListsData}
       renderItem={({ item }) => {
+        console.log('item: ', item);
         return (
         <View style={{ marginHorizontal:dimensions.sm / 2 }}>
         <Card contentStyle={{ backgroundColor:colors.pureWhite,paddingHorizontal:dimensions.md,borderRadius:dimensions.sm }} mode="elevated" style={styles.cardContainer} onPress={() => navigation.navigate('ProductDetailsScreen',{ item })}>
@@ -228,6 +256,11 @@ const AgentProductsListScreen = () => {
       </View>
         );
       }}
+      ListEmptyComponent={(
+      <View style={{ flex:1,justifyContent:'center',alignItems:'center',height:dimensions.height/1.4}}>
+      <Text style={{ fontFamily:fonts.light,fontSize:dimensions.xl/2 }}>No products are assigned</Text>
+      </View>
+        )}
       />
         )
 
