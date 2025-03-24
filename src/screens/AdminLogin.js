@@ -5,7 +5,6 @@ import {
   View,
   Image,
   TextInput,
-  TouchableOpacity,
   Pressable,
   KeyboardAvoidingView,
   Keyboard,
@@ -314,6 +313,7 @@ const AdminLogin = () => {
       setRestoreModalContent('No restore needed');
     }
   };
+  
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView

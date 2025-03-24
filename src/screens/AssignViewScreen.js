@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import React, {memo, useCallback, useEffect, useState} from 'react';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
 import {
   ActivityIndicator,
   Appbar,
@@ -23,6 +23,7 @@ import {Divider, ListItem, SearchBar} from '@rneui/themed';
 import {getFirestore} from '@react-native-firebase/firestore';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import useAssigningStore from '../store/useAssigningStore';
+import Dialog from "react-native-dialog";
 
 const ProductItem = memo(({item, onPress}) => (
   <Pressable style={{marginHorizontal: dimensions.sm / 2}} onPress={onPress}>
@@ -77,11 +78,14 @@ const ProductItem = memo(({item, onPress}) => (
 ));
 
 const AssignViewScreen = () => {
+
+  //When adding stocks it didnt increment the stock in global state
   const item = useRoute().params.data;
-  console.log('item: ', item);
   const navigation = useNavigation();
   const [isVisible, setIsVisible] = useState(false);
-
+  const [emptyDialogVisible, setEmptyDialogVisible] = useState(false);
+  const [selectedDialogVisible,setSelectedDialogVisible ] = useState(false);
+  const [allStocksDeleteDialog, setAllStocksDeleteDialog] = useState(false);
   //Zustand Store
   const { stockEntry,setStockEntry,setTotalStockPrice,setTotalStockNos,totalStockPrice,totalStockNos,resetStocks,resetTotals } = useAssigningStore();
   console.log('stockEntry: ', stockEntry);
@@ -102,7 +106,7 @@ const AssignViewScreen = () => {
     setFetchProductsLoader(true);
     try {
       const productsSnap = await getFirestore().collection('products').get();
-      const productsData = await productsSnap.docs.map(item => item.data());
+      const productsData = productsSnap.docs.map(item => item.data());
       setFetchedProducts(productsData);
     } catch (error) {
       console.log('Error in internal server while fetching products', error);
@@ -115,7 +119,6 @@ const AssignViewScreen = () => {
   }, [fetchProductLists]);
 
   const [singleProduct, setSingleProduct] = useState({});
-  console.log('singleProduct: ', singleProduct);
 
   const handlePress = item => {
     setIsVisible(true);
@@ -144,92 +147,112 @@ const AssignViewScreen = () => {
   const [stockEntryLoader, setStockEntryLoader] = useState(false);
   const [addedStocks, setAddedStocks] = useState([]);
   const [errorInput, setErrorInput] = useState(false);
+
+  
   const handleInputChange = (index, text, item) => {
-    const numericValue = text.replace(/[^0-9]/g, '')
-    const stockLimit = item.stocks
-    const cappedValue = Math.min(Number(numericValue),stockLimit)
-    setErrorInput(false)
-    setAddedStocks(prev => {
-      const existingIndex = prev.findIndex(entry => entry.id === index);
+    const numericValue = text.replace(/[^0-9]/g, '');
+    const stockLimit = item.stocks || 0;
+    const cappedValue = Math.min(Number(numericValue), stockLimit);
+    setErrorInput(false);
+  
+    setAddedStocks((prev) => {
+      const existingIndex = prev.findIndex(entry => entry.weight === item.weight); // Use weight as key
       if (existingIndex !== -1) {
         return prev.map((entry, i) =>
-          i === existingIndex ? {...entry, assignedValue: cappedValue,totalStocks:cappedValue} : entry,
+          i === existingIndex
+            ? { ...entry, assignedValue: cappedValue, totalStocks: cappedValue }
+            : entry
         );
       } else {
         return [
           ...prev,
           {
-            id: index,
+            id: `${singleProduct.ProductId}-${item.weight}`, // Unique ID
             assignedValue: cappedValue,
             weight: item.weight,
             price: item.price,
-            totalStocks:cappedValue
+            totalStocks: cappedValue,
           },
         ];
       }
     });
   };
 
-  const handleConfirmEntry = () => {
-    setStockEntryLoader(true)
-    if(addedStocks.length === 0){
-      console.log("Invalid entry")
-      setErrorInput(true)
+
+
+  const handleConfirmEntry = useCallback(() => {
+    setStockEntryLoader(true);
+    if (addedStocks.length === 0) {
+      console.log("Invalid entry: No stocks added");
+      setErrorInput(true);
       setStockEntryLoader(false);
       return;
     }
-    try{
+  
+    try {
       const today = new Date();
-      const formattedDate =
-      today.getDate().toString().padStart(2, '0') +
-      '/' +
-      (today.getMonth() + 1).toString().padStart(2, '0') +
-      '/' +
-      today.getFullYear();
-      console.log(formattedDate);
-      const totalStocks = addedStocks.reduce((prev,curr) => prev + (curr.assignedValue),0)
+      const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+  
+      const totalStocks = addedStocks.reduce((sum, curr) => sum + (curr.assignedValue || 0), 0);
+      const totalPrice = addedStocks.reduce((sum, curr) => sum + ((curr.assignedValue || 0) * (curr.price || 0)), 0);
+  
       setTotalStockNos(totalStocks);
-      const totalPrice = addedStocks.reduce((prev,curr) => prev + (curr.assignedValue * curr.price),0);
-      setTotalStockPrice(totalPrice)
+      setTotalStockPrice(totalPrice);
+  
       setStockEntry((prev) => {
-        const existingStock = prev.findIndex(
-          item => item.ProductId === singleProduct.ProductId,
-        );
-        console.log('existingStock: ', existingStock);
-        if (existingStock !== -1) {
+        const existingStockIndex = prev.findIndex(item => item.ProductId === singleProduct.ProductId);
+        if (existingStockIndex !== -1) {
           return prev.map((item, index) =>
-            index === existingStock ? {...item, addedStocks: addedStocks} : item,
+            index === existingStockIndex
+              ? {
+                  ...item,
+                  Stocks: item.Stocks.map(stockItem => {
+                    const newStock = addedStocks.find(s => s.weight === stockItem.weight);
+                    return newStock
+                      ? {
+                          ...stockItem,
+                          assignedValue: (stockItem.assignedValue || 0) + newStock.assignedValue,
+                          totalStocks: (stockItem.totalStocks || 0) + newStock.assignedValue,
+                        }
+                      : stockItem;
+                  }).concat(addedStocks.filter(s => !item.Stocks.some(stockItem => stockItem.weight === s.weight))),
+                  TotalStocks: (item.TotalStocks || 0) + totalStocks,
+                  TotalPrice: (item.TotalPrice || 0) + totalPrice,
+                }
+              : item
           );
         } else {
           return [
             ...prev,
             {
               ProductId: singleProduct.ProductId,
-              ProductName: singleProduct.ProductName,
-              Stocks: addedStocks,
-              BarcodeImageUri:singleProduct.BarcodeImageUri,
-              Barcode:singleProduct.Barcode,
-              Category:singleProduct.Category,
-              Description:singleProduct.Description,
-              ProductImage:singleProduct.ProductImage,
-              BrandName:singleProduct.BrandName,
-              TotalPrice:totalPrice,
-              TotalStocks:totalStocks,
-              Date:formattedDate
+              ProductName: singleProduct.ProductName || "Unnamed",
+              Stocks: addedStocks.map(stock => ({ ...stock })),
+              BarcodeImageUri: singleProduct.BarcodeImageUri,
+              Barcode: singleProduct.Barcode,
+              Category: singleProduct.Category,
+              Description: singleProduct.Description,
+              ProductImage: singleProduct.ProductImage,
+              BrandName: singleProduct.BrandName,
+              TotalPrice: totalPrice,
+              TotalStocks: totalStocks,
+              Date: formattedDate,
             },
           ];
         }
-      })
-    }catch(error){
-      console.log("Error while confirming entry",error)
-    }finally{
+      });
+  
       setTimeout(() => {
-        setAddedStocks([])
+        setAddedStocks([]);
         setStockEntryLoader(false);
-        setIsVisible(false)
+        setIsVisible(false);
       }, 400);
+    } catch (error) {
+      console.error("Error while confirming entry:", error);
+      setStockEntryLoader(false);
     }
-  };
+  }, [singleProduct, addedStocks, setTotalStockNos, setTotalStockPrice]);
+
 
   // Stock Modal Dismiss Function
   const handleDismiss = () => {
@@ -255,7 +278,6 @@ const handleClearStocks = () => {
 
 // checkBox functions
   const [checkedItems, setCheckedItems] = useState({});
-  console.log('checkedItems: ', checkedItems);
   const handleCheckedAccordion = (productId) => {
     setCheckedItems((prev) => ({
       ...prev,
@@ -297,27 +319,27 @@ const handleClearStocks = () => {
     setCheckedItems({});
     
   }
-  
+
 const [assigningLoader, setAssigningLoader] = useState(false);
 const handleAssignAndRemoveStocks = async () => {
   setAssigningLoader(true);
+  if(stockEntry.length === 0){
+    setAssigningLoader(false)
+    setEmptyDialogVisible(true)
+    return;
+  }
   try {
     console.log('item.AgentID: ', item.AgentID);
-    if(stockEntry.length === 0){
-
-      return;
-    }
     const agentProductsRef = getFirestore().collection('agent-products').doc(item.AgentID);
     
     // Check if Agent exists
     if (!(await agentProductsRef.get()).exists) {
       console.log("Agent ID not found");
     }
-
     // Assign products to agent
    await agentProductsRef.set({ products: [...stockEntry] });
     console.log("Products assigned to agent successfully");
-
+    const updatedSales = [];
     // Update product stocks in Firestore
     for (const productItem of stockEntry) {
       const productId = productItem.ProductId.toString();
@@ -345,18 +367,49 @@ const handleAssignAndRemoveStocks = async () => {
       // Update Firestore with new stock values
       await productRef.update({ Stocks: updatedStocks });
       console.log(`Stock updated successfully for Product ID: ${productId}`);
+      for(const singlestock of productItem.Stocks){
+        updatedSales.push({
+          productId: productItem.ProductId,
+          productName: productItem.ProductName,
+          productImage: productItem.ProductImage,
+          remainingStock:singlestock.assignedValue,
+          totalStock:singlestock.assignedValue,
+          soldStock:0,
+          weight:singlestock.weight,
+          price:singlestock.price,
+          totalPrice:0
+        })
+      }
     }
+    // Create a product sales for agent for realtime updates
 
+    const agentProductSalesRef = await getFirestore().collection('productsales').doc(item.AgentID)
+
+    await agentProductSalesRef.set({
+      CashTotal:0,
+      CreditTotal:0,
+      UPITotal:0,
+      sales:updatedSales
+    })
     // Clear checked items and reset state
     await setCheckedItems({});
     await handleClearStocks();
-    navigation.goBack();
+    handleSuccess();
   } catch (error) {
     console.error("Error in internal server while assigning and updating stocks:", error);
   } finally {
     setAssigningLoader(false);
   }
 };
+const [isSuccessModalVisible, setIsSuccessModalisVisible] = useState(false);
+
+const handleSuccess = () => {
+  setIsSuccessModalisVisible(true)
+  setTimeout(() => {
+    setIsSuccessModalisVisible(false)
+    navigation.goBack();
+  },800)
+}
 
   return (
     <View style={styles.container}>
@@ -445,17 +498,21 @@ const handleAssignAndRemoveStocks = async () => {
           <View style={{ flexDirection:'row',justifyContent:'space-between',marginBottom:dimensions.sm/2 }}>
           <Text style={styles.label}>Stocks Summary</Text>
           {
-            Object.values(checkedItems).some(value => value)
+            stockEntry.length !== 0
+            ?
+            (Object.values(checkedItems).some(value => value)
             ? (
-            <TouchableOpacity onPress={handleDeleteCheckedItems}>
+            <TouchableOpacity onPress={() => setSelectedDialogVisible(true)}>
             <Text style={{ color:'red',fontFamily:fonts.semibold }}>Clear selected</Text>
           </TouchableOpacity>
             ) 
             : (
-          <TouchableOpacity onPress={handleClearStocks}>
+          <TouchableOpacity onPress={() => setAllStocksDeleteDialog(true)}>
           <Text style={{ color:'red',fontFamily:fonts.semibold }}>Clear all</Text>
           </TouchableOpacity>
             )
+          )
+          : null
           }
           
           </View>
@@ -465,6 +522,7 @@ const handleAssignAndRemoveStocks = async () => {
           style={[{ height:dimensions.height/4.75 }, stockEntry.length === 0 && { height:dimensions.md}]}
           data={stockEntry}
           renderItem={({ item }) => {
+            console.log('item: ', item);
             const itemStockArray = item.Stocks || []
             const totalStocks = itemStockArray.reduce((prev,curr) => prev + (curr.assignedValue),0)
             const totalPrice = itemStockArray.reduce((prev,curr) => prev + (curr.assignedValue * curr.price),0);
@@ -622,62 +680,55 @@ const handleAssignAndRemoveStocks = async () => {
            const assignedValue = addedStocks[index]?.assignedValue || 0; // Default to "0" if undefined
            const stockLimit = item.stocks || 0; // Ensure stock is not undefined
            const cappedValue = Math.min(assignedValue, stockLimit).toString(); // Prevent exceeding stock
-
-           const incrementStock = (index,item) => {
-            if(cappedValue === 0){
-              console.log("Invalid input value")
-              return;
-            }
-           setAddedStocks((prev) => {
-            const existingProduct = prev.findIndex((entry) => entry.id === index)
-            if(existingProduct !== -1){
-              return prev.map((entry,i) => 
-                i === existingProduct
-                ? { ...entry, assignedValue: (Number(entry.assignedValue) || 0) + 1,totalStocks: (Number(entry.assignedValue) || 0) + 1} 
-                : entry
-                )
-            }else{
-              return [
-                ...prev,
-                {
-                  id: index, // Ensure a unique ID
-                  assignedValue: 1, // Start from 1
-                  weight: item.weight,
-                  price: item.price,
-                  totalStocks:1
-                },
-              ];
-            }
-           })
-           }
-
-           const decrementStock = (index,item) => {
-            if(cappedValue === 0){
-              console.log("Invalid input value")
-              return;
-            }
-            setAddedStocks((prev) => {
-            const existingProduct = prev.findIndex((entry) => entry.id === index)
-            if(existingProduct !== -1){
-              return prev.map((entry,i) => 
-                i === existingProduct
-                ? { ...entry, assignedValue: Math.max((Number(entry.assignedValue) || 0) - 1, 0),totalStocks: Math.max((Number(entry.assignedValue) || 0) - 1, 0),} 
-                : entry
-                )
-            }else{
-              return [
-                ...prev,
-                {
-                  id: index,
-                  assignedValue: 0,
-                  weight: item.weight,
-                  price: item.price,
-                  totalStocks: 0
-                },
-              ];
-            }
-           })
-           }
+            console.log("item",item)
+            const incrementStock = (index, item) => {
+              setErrorInput(false);
+              setAddedStocks((prev) => {
+                const existingIndex = prev.findIndex(entry => entry.weight === item.weight);
+                if (existingIndex !== -1) {
+                  return prev.map((entry, i) =>
+                    i === existingIndex
+                      ? {
+                          ...entry,
+                          assignedValue: Math.min((Number(entry.assignedValue) || 0) + 1, item.stocks),
+                          totalStocks: Math.min((Number(entry.assignedValue) || 0) + 1, item.stocks),
+                        }
+                      : entry
+                  );
+                } else {
+                  return [
+                    ...prev,
+                    {
+                      id: `${singleProduct.ProductId}-${item.weight}`,
+                      assignedValue: 1,
+                      weight: item.weight,
+                      price: item.price,
+                      totalStocks: 1,
+                    },
+                  ];
+                }
+              });
+            };
+            
+            const decrementStock = (index, item) => {
+              setErrorInput(false);
+              setAddedStocks((prev) => {
+                const existingIndex = prev.findIndex(entry => entry.weight === item.weight);
+                if (existingIndex !== -1) {
+                  return prev.map((entry, i) =>
+                    i === existingIndex
+                      ? {
+                          ...entry,
+                          assignedValue: Math.max((Number(entry.assignedValue) || 0) - 1, 0),
+                          totalStocks: Math.max((Number(entry.assignedValue) || 0) - 1, 0),
+                        }
+                      : entry
+                  );
+                }
+                return prev; // No need to add if decrementing from nothing
+              });
+            };
+        
             return (
               <View key={index} style={styles.tableRow}>
                 <Text style={styles.tableCell}>
@@ -707,17 +758,12 @@ const handleAssignAndRemoveStocks = async () => {
                     <TextInput
                       style={{alignSelf: 'center'}}
                       key={index}
-                      value={cappedValue}
                       onChangeText={text =>
                         handleInputChange(index, text, item)
                       }
                       keyboardType="number-pad"
                       maxLength={item.stocks.toString().length}
-                      placeholder={
-                          addedStocks[index]?.assignedValue.toString()
-                          ? addedStocks[index]?.assignedValue.toString()
-                          : '0'
-                      }
+                      value={cappedValue}
                     />
                   </View>
                   <TouchableOpacity onPress={() => decrementStock(index,item)}>
@@ -743,6 +789,63 @@ const handleAssignAndRemoveStocks = async () => {
           </Button>
         </Modal>
       )}
+
+      {/* Empty Alert Dialog */}
+      <Dialog.Container visible={emptyDialogVisible} onBackdropPress={()=> setEmptyDialogVisible(false)}>
+      <Dialog.Title style={{ color:'red',fontFamily:fonts.bold }}>
+        Stocklist are empty 
+      </Dialog.Title>
+      <Dialog.Description style={{ fontFamily:fonts.regular }}>
+        Add stocks
+      </Dialog.Description>
+      <Dialog.Button label='Proceed' onPress={()=> setEmptyDialogVisible(false)}>
+        Proceed
+      </Dialog.Button>
+      </Dialog.Container>
+
+      {/* Selected Delete Dialog */}
+      <Dialog.Container visible={selectedDialogVisible} onBackdropPress={()=> setSelectedDialogVisible(false)}>
+      <Dialog.Title style={{ fontFamily:fonts.bold }}>
+      Clear all selected stocks 
+      </Dialog.Title>
+      <Dialog.Description style={{ fontFamily:fonts.light }}>Are you sure?</Dialog.Description>
+      <Dialog.Button label='Accept' onPress={()=> {
+        handleDeleteCheckedItems()
+        setSelectedDialogVisible(false)
+        }} />
+      <Dialog.Button label='Cancel' onPress={()=> setSelectedDialogVisible(false)} />
+      </Dialog.Container>
+
+      {/* All stocks delete dialog */}
+      <Dialog.Container visible={allStocksDeleteDialog} onBackdropPress={()=> setAllStocksDeleteDialog(false)}>
+      <Dialog.Title style={{ fontFamily:fonts.bold }}>
+      Clear all stocks 
+      </Dialog.Title>
+      <Dialog.Description style={{ fontFamily:fonts.light }}>Are you sure?</Dialog.Description>
+      <Dialog.Button label='Accept' onPress={()=> {
+        handleClearStocks()
+        setAllStocksDeleteDialog(false)
+        }} />
+      <Dialog.Button label='Cancel' onPress={()=> setAllStocksDeleteDialog(false)} />
+      </Dialog.Container>
+              <Modal
+              visible={isSuccessModalVisible}
+              contentContainerStyle={styles.modalContent}>
+              <View style={styles.modalContent}>
+                <AntDesign
+                  name="checkcircle"
+                  size={dimensions.width / 4}
+                  color="green"
+                />
+                <Text
+                  style={[styles.modalTitle, {marginVertical: dimensions.sm / 2}]}>
+                  Assign Successful!
+                </Text>
+                <Text style={[styles.modalText, {marginBottom: dimensions.sm / 2}]}>
+                  Assigning stocks to agent <Text style={{ fontFamily:fonts.bold }}>{item.AgentID}</Text> has been completed successfully.
+                </Text>
+              </View>
+            </Modal>
     </View>
   );
 };
@@ -849,5 +952,23 @@ const styles = StyleSheet.create({
   },
   footerText2:{
     fontFamily:fonts.bold,
-  }
+  },
+  modalContent: {
+    backgroundColor: colors.pureWhite,
+    borderRadius: dimensions.sm,
+    paddingVertical:dimensions.sm,
+    alignItems: 'center',
+    margin: dimensions.md,
+  },
+  modalTitle: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
+    color: colors.black,
+  },
+  modalText: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+    color: colors.black,
+    textAlign: 'center',
+  },
 });

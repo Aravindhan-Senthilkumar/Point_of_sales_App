@@ -349,18 +349,19 @@ const AgentHomePage = () => {
         <View
           style={{
             backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            marginHorizontal: dimensions.xl,
+            height: dimensions.height / 5,
+            marginHorizontal: dimensions.xl*2,
             borderRadius: dimensions.sm,
             justifyContent: 'center',
             alignItems: 'center',
+            paddingTop:dimensions.xl
           }}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size={dimensions.xl} />
           <Text
             style={{
               fontFamily: fonts.semibold,
-              marginVertical: dimensions.md,
-              fontSize: dimensions.sm * 1.25,
+              marginVertical: dimensions.sm,
+              fontSize: dimensions.sm,
             }}>
             Backing Up.....
           </Text>
@@ -370,22 +371,23 @@ const AgentHomePage = () => {
         <View
           style={{
             backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            marginHorizontal: dimensions.xl,
+            height: dimensions.height / 5,
+            marginHorizontal: dimensions.xl*2,
             borderRadius: dimensions.sm,
             justifyContent: 'center',
             alignItems: 'center',
+            paddingTop:dimensions.xl
           }}>
           <AntDesign
             name="checkcircle"
             color="green"
-            size={dimensions.width / 4}
+            size={dimensions.width / 6}
           />
           <Text
             style={{
               fontFamily: fonts.semibold,
-              marginVertical: dimensions.md,
-              fontSize: dimensions.sm * 1.25,
+              marginVertical: dimensions.sm,
+              fontSize: dimensions.sm,
             }}>
             Backup Completed
           </Text>

@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import {Appbar, Button, Text, Modal} from 'react-native-paper';
-import {useNavigation} from '@react-navigation/native';
+import {CommonActions, useNavigation} from '@react-navigation/native';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
@@ -34,6 +34,7 @@ import useProductStore from '../store/useProductStore';
 const PaymentScreen = () => {
   const navigation = useNavigation();
   const {cart, total, clearCart, setPaymentConfirmation} = useCartStore();
+  console.log('cart: ', cart);
   const {agent} = useAgentStore();
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -51,7 +52,7 @@ const PaymentScreen = () => {
   const [alertVisible, setAlertVisible] = useState(false);
   const [upiGateWayModal, setUpiGateWayModal] = useState(false);
   const upiId = 'Ukinfotech@okicici';
-  const { setIsProductUpdated } = useProductStore();
+  const {setIsProductUpdated} = useProductStore();
 
   const renderCartItem = (item, index) => (
     <View key={`${item.productId}-${index}`} style={styles.cartItem}>
@@ -99,14 +100,13 @@ const PaymentScreen = () => {
       setUpiGateWayModal(true);
     } else {
       setPaymentGatewayVisible(true);
-    }  
+    }
   };
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
     transactionId: '',
   });
-
 
   const [invoiceData, setInvoiceData] = useState({});
 
@@ -116,125 +116,129 @@ const PaymentScreen = () => {
 
   const orderDataSetting = () => {
     let newErrors = {};
-      if (paymentMethod === 'Credit') {
-        if (creditPayValue === 'FullPayCredit') {
-          orderData.PaymentMethod = 'Credit';
-          orderData.AmountPaid = {
-            CreditAmount: Number(total),
-            Total: Number(total),
-            CashPaid: Number(total),
-          };
-        } else {
-          if (partialPayMode === 'Cash') {
-            orderData.PaymentMethod = 'Partial Credit - Cash';
-            orderData.AmountPaid = {
-              Total: Number(total),
-              CashPaid: Number(cashAmount),
-              CreditAmount: Number(remainingAmount),
-            };
-          } else {
-            if (!transactionId.trim())
-              newErrors.transactionId = 'Please enter transaction id';
-            orderData.PaymentMethod = 'Partial Credit - UPI';
-            orderData.AmountPaid = {
-              Total: Number(total),
-              CashPaid: Number(upiAmount),
-              TransactionId: transactionId,
-              CreditAmount: Number(remainingAmount),
-            };
-          }
-        }
-      } else if (paymentMethod === 'UPI') {
-        if (!transactionId.trim())
-          newErrors.transactionId = 'Please enter transaction id';
-        orderData.PaymentMethod = 'UPI';
+    if (paymentMethod === 'Credit') {
+      if (creditPayValue === 'FullPayCredit') {
+        orderData.PaymentMethod = 'Credit';
         orderData.AmountPaid = {
+          CreditAmount: Number(total),
           Total: Number(total),
-          TransactionId: transactionId,
           CashPaid: Number(total),
         };
       } else {
-        orderData.PaymentMethod = 'Cash';
-        orderData.AmountPaid = {Total: Number(total), CashPaid: Number(total)};
+        if (partialPayMode === 'Cash') {
+          orderData.PaymentMethod = 'Partial Credit - Cash';
+          orderData.AmountPaid = {
+            Total: Number(total),
+            CashPaid: Number(cashAmount),
+            CreditAmount: Number(remainingAmount),
+          };
+        } else {
+          if (!transactionId.trim())
+            newErrors.transactionId = 'Please enter transaction id';
+          orderData.PaymentMethod = 'Partial Credit - UPI';
+          orderData.AmountPaid = {
+            Total: Number(total),
+            CashPaid: Number(upiAmount),
+            TransactionId: transactionId,
+            CreditAmount: Number(remainingAmount),
+          };
+        }
       }
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
-      }
-      setInvoiceData({
-        AgentID: agent.AgentID,
-        AgentName: agent.AgentName,
-        MobileNumber: agent.MobileNumber,
-        AgentAddress: agent.Address,
-        PlacedOrders: {
-          AmountPaid: orderData.AmountPaid,
-          PaymentMethod: orderData.PaymentMethod,
-          products: orderData.products,
-          orderedAt: Date.now().toString(),
-        },
-      });
-      return true
-  }
-
+    } else if (paymentMethod === 'UPI') {
+      if (!transactionId.trim())
+        newErrors.transactionId = 'Please enter transaction id';
+      orderData.PaymentMethod = 'UPI';
+      orderData.AmountPaid = {
+        Total: Number(total),
+        TransactionId: transactionId,
+        CashPaid: Number(total),
+      };
+    } else {
+      orderData.PaymentMethod = 'Cash';
+      orderData.AmountPaid = {Total: Number(total), CashPaid: Number(total)};
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setInvoiceData({
+      AgentID: agent.AgentID,
+      AgentName: agent.AgentName,
+      MobileNumber: agent.MobileNumber,
+      AgentAddress: agent.Address,
+      PlacedOrders: {
+        AmountPaid: orderData.AmountPaid,
+        PaymentMethod: orderData.PaymentMethod,
+        products: orderData.products,
+        orderedAt: Date.now().toString(),
+      },
+    });
+    return true;
+  };
 
   const handlePaymentSuccess = async () => {
     setLoading(true);
     const hasOrderDataSet = orderDataSetting();
     if (hasOrderDataSet) {
-        try {
-          const orderRef = getFirestore().collection('orders').doc(agent.AgentID);
-          await requestStoragePermission();
-  
-          // Update Firestore with the new order
-          await orderRef.set(
-              {
-                  PlacedOrders: firestore.FieldValue.arrayUnion({
-                      AmountPaid: orderData.AmountPaid,
-                      orderedAt: Date.now().toString(),
-                      PaymentMethod: orderData.PaymentMethod,
-                      products: orderData.products,
-                  })
-              },
-              { merge: true }
-          );
-  
-          // Process sales data and update stock
-          await orderSalesData(orderData);
-          await updateStockAfterPurchase();
-  
-          // Close payment modals and show success
-          setPaymentGatewayVisible(false);
-          setCreditGateWayModal(false);
-          setUpiGateWayModal(false);
-          setOrderSuccessVisible(true);
-          return;
-        } catch (error) {
-            console.log("Error in internal server while payment processing:", error);
-            return;
-        } finally {
-            setLoading(false);
+      try {
+        const orderRef = getFirestore().collection('orders').doc(agent.AgentID);
+        // Request storage permission and check result
+        const permissionGranted = await requestStoragePermission();
+        if (!permissionGranted) {
+          console.log('Storage permission denied, cannot generate PDF');
+          throw new Error('Storage permission required for PDF generation');
         }
-    }
-};
 
+        // Update Firestore with the new order
+        await orderRef.set(
+          {
+            PlacedOrders: firestore.FieldValue.arrayUnion({
+              AmountPaid: orderData.AmountPaid,
+              orderedAt: Date.now().toString(),
+              PaymentMethod: orderData.PaymentMethod,
+              products: orderData.products,
+            }),
+          },
+          {merge: true},
+        );
+
+        // Process sales data and update stock
+        await orderSalesData(orderData);
+        await updateStockAfterPurchase();
+        // Close payment modals and show success
+        setPaymentGatewayVisible(false);
+        setCreditGateWayModal(false);
+        setUpiGateWayModal(false);
+        setOrderSuccessVisible(true);
+        return;
+      } catch (error) {
+        console.log(
+          'Error in internal server while payment processing:',
+          error,
+        );
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const handleCloseSuccess = async () => {
-    setpdfGenerationLoading(true)
     try {
-      const hasPermission = await generatePdf();
-      if(hasPermission){
-       setPaymentConfirmation(true);
-       clearCart();
-       setOrderSuccessVisible(false);
-       setIsProductUpdated(true);
-       navigation.replace('AgentProductsListScreen');
-      }else{
-        console.log("Invoice generated successfully without sending notifications")
-      }
+        setPaymentConfirmation(true);
+        clearCart();
+        setOrderSuccessVisible(false);
+        setIsProductUpdated(true);
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{name: 'AgentHomePage'}],
+          }),
+        );
     } catch (error) {
       console.log('Error while making order', error);
-    }finally{
-      setpdfGenerationLoading(false)
+    } finally {
+      setpdfGenerationLoading(false);
     }
   };
 
@@ -333,8 +337,22 @@ const PaymentScreen = () => {
 
   const {adminLogoUri} = useAgentStore();
 
-
   const [pdfGenerationLoading, setpdfGenerationLoading] = useState(false);
+
+  const invoiceGenerationRecursion = async () => {
+    setpdfGenerationLoading(true);
+    let hasPermission = false;
+        for(let i =0;i < 4;i++){
+          hasPermission = await generatePdf();
+          if(hasPermission) break;
+        }
+        if (!hasPermission) {
+          console.log('Failed to generate PDF after four attempts.');
+        }
+        if(hasPermission){
+          handleCloseSuccess()
+        }
+  }
 
   const generatePdf = async () => {
     const today = new Date();
@@ -512,7 +530,7 @@ const PaymentScreen = () => {
       return true;
     } catch (error) {
       console.log('Error while generating Invoice PDF', error);
-      return false
+      return false;
     }
   };
 
@@ -539,43 +557,43 @@ const PaymentScreen = () => {
   };
 
   const updateStockAfterPurchase = async () => {
-    const requiredCartItems = cart.map((item) => ({
+    const requiredCartItems = cart.map(item => ({
       productId: item.productId,
       weight: item.weight,
       quantity: item.quantity,
     }));
-    console.log("requiredCartItems: ", requiredCartItems);
-  
+    console.log('requiredCartItems: ', requiredCartItems);
+
     try {
       const productRef = getFirestore()
-        .collection("agent-products")
+        .collection('agent-products')
         .doc(agent.AgentID);
       const productSnap = await productRef.get();
-  
+
       if (!productSnap.exists) {
-        console.error("No such document for Agent ID:", agent.AgentID);
+        console.error('No such document for Agent ID:', agent.AgentID);
         return;
       }
-  
+
       let productData = productSnap.data().products || []; // Ensure products array exists
-      console.log("Existing productData: ", productData);
-  
+      console.log('Existing productData: ', productData);
+
       for (const item of requiredCartItems) {
-        const { quantity, productId, weight } = item;
-  
+        const {quantity, productId, weight} = item;
+
         const requiredProductIndex = productData.findIndex(
-          (prod) => prod.ProductId === productId
+          prod => prod.ProductId === productId,
         );
-  
+
         if (requiredProductIndex === -1) {
           console.warn(`Product ID ${productId} not found in database.`);
           continue; // Skip to next iteration
         }
-  
+
         // Update the stocks inside the product
         productData[requiredProductIndex].Stocks = productData[
           requiredProductIndex
-        ].Stocks.map((stockitem) => {
+        ].Stocks.map(stockitem => {
           if (stockitem.weight === weight) {
             return {
               ...stockitem,
@@ -587,96 +605,107 @@ const PaymentScreen = () => {
           }
           return stockitem;
         });
-  
+
         console.log(
-          `Stock updated for Product ID ${productId}, Weight: ${weight}`
+          `Stock updated for Product ID ${productId}, Weight: ${weight}`,
         );
       }
-      
+
       // Update Firestore document after looping through all products
-      await productRef.update({ products: productData });
-      
-      console.log("Stock update process completed.");
+      await productRef.update({products: productData});
+
+      console.log('Stock update process completed.');
     } catch (error) {
-      console.error("Error in updating stocks", error);
+      console.error('Error in updating stocks', error);
     }
   };
-  
+
   const orderSalesData = async () => {
     try {
-      const orderSalesRef = await getFirestore().collection('productsales').doc(agent.AgentID);
-      
+      const orderSalesRef = getFirestore()
+        .collection('productsales')
+        .doc(agent.AgentID);
       const docSnapshot = await orderSalesRef.get();
-      let cashamount = 0, upiamount = 0, creditamount = 0;
+      let cashamount = 0,
+        upiamount = 0,
+        creditamount = 0;
 
       if (docSnapshot.exists) {
-        const existingOrders = docSnapshot.data() || [];
+        const existingOrders = docSnapshot.data() || {};
         console.log('existingOrders: ', existingOrders);
-        // Calculate existing amounts from Firestore
-        cashamount += existingOrders.CashTotal
-        upiamount += existingOrders.UPITotal
-        creditamount += existingOrders.CreditTotal
+        cashamount += existingOrders.CashTotal || 0;
+        upiamount += existingOrders.UPITotal || 0;
+        creditamount += existingOrders.CreditTotal || 0;
       }
+
       console.log('creditamount: ', creditamount);
       console.log('upiamount: ', upiamount);
       console.log('cashamount: ', cashamount);
-      // Add new payment amount
-      console.log("OrderData",orderData)
-      if (orderData.PaymentMethod === "Cash") {
+
+      console.log('OrderData', orderData);
+      if (orderData.PaymentMethod === 'Cash') {
         cashamount += orderData.AmountPaid.CashPaid || 0;
-      } else if (orderData.PaymentMethod === "UPI") {
+      } else if (orderData.PaymentMethod === 'UPI') {
         upiamount += orderData.AmountPaid.CashPaid || 0;
-      } else if (orderData.PaymentMethod === "Credit") {
+      } else if (orderData.PaymentMethod === 'Credit') {
         creditamount += orderData.AmountPaid.CreditAmount || 0;
-      } else if (orderData.PaymentMethod === "Partial Credit - Cash") {
+      } else if (orderData.PaymentMethod === 'Partial Credit - Cash') {
         cashamount += orderData.AmountPaid.CashPaid || 0;
         creditamount += orderData.AmountPaid.CreditAmount || 0;
-      } else if (orderData.PaymentMethod === "Partial Credit - UPI") {
+      } else if (orderData.PaymentMethod === 'Partial Credit - UPI') {
         upiamount += orderData.AmountPaid.CashPaid || 0;
         creditamount += orderData.AmountPaid.CreditAmount || 0;
       }
+
       console.log('creditamount: ', creditamount);
       console.log('upiamount: ', upiamount);
       console.log('cashamount: ', cashamount);
-      // Fetch existing sales data
-      const existingData = docSnapshot.exists ? docSnapshot.data().sales || [] : [];
-  
-      // Merge new sales data with existing records
+
+      const existingData = docSnapshot.exists
+        ? docSnapshot.data().sales || []
+        : [];
       const updatedSalesData = [...existingData];
-  
-      cart.forEach((item) => {
-        const index = updatedSalesData.findIndex(p => p.productId === item.productId && p.weight === item.weight);
-  
+
+      cart.forEach(item => {
+        const index = updatedSalesData.findIndex(
+          p => p.productId === item.productId && p.weight === item.weight,
+        );
         if (index !== -1) {
-          // Update existing product
           updatedSalesData[index].soldStock += item.quantity;
           updatedSalesData[index].totalPrice += item.quantity * item.price;
+          updatedSalesData[index].remainingStock = Math.max(
+            updatedSalesData[index].totalStock -
+              updatedSalesData[index].soldStock,
+            0,
+          );
         } else {
-          // Add new product entry
           updatedSalesData.push({
             productId: item.productId,
             productName: item.productName,
             weight: item.weight,
             productImage: item.productImage,
-            totalStock: item.stocks, // Immutable total stock
+            totalStock: item.stocks,
             soldStock: item.quantity,
             price: item.price,
             totalPrice: item.quantity * item.price,
+            remainingStock: item.stocks - item.quantity,
           });
         }
       });
-  
-      // Update Firestore
-      await orderSalesRef.set({
-        sales: updatedSalesData,
-        CashTotal: cashamount,
-        UPITotal: upiamount,
-        CreditTotal: creditamount
-      }, { merge: true });
-  
+
+      await orderSalesRef.set(
+        {
+          sales: updatedSalesData,
+          CashTotal: cashamount,
+          UPITotal: upiamount,
+          CreditTotal: creditamount,
+        },
+        {merge: true},
+      );
+
       console.log('Product sales data saved successfully.');
     } catch (error) {
-      console.log("Error while saving orderSalesData:", error);
+      console.log('Error while saving orderSalesData:', error);
     }
   };
 
@@ -784,7 +813,7 @@ const PaymentScreen = () => {
         </View>
 
         {/* Products List from Cart */}
-        <View style={[styles.section,{ marginBottom:dimensions.md * 7 }]}>
+        <View style={[styles.section, {marginBottom: dimensions.md * 7}]}>
           <Text style={styles.label}>Order Summary</Text>
           {cart.length > 0 ? (
             cart.map((item, index) => renderCartItem(item, index))
@@ -794,7 +823,7 @@ const PaymentScreen = () => {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-      <Text style={styles.totalText}>Total: ₹ {total}</Text>
+        <Text style={styles.totalText}>Total: ₹ {total}</Text>
         <Button
           onPress={handlePayment}
           mode="contained"
@@ -803,8 +832,6 @@ const PaymentScreen = () => {
           Proceed to Payment
         </Button>
       </View>
-
-
 
       {/* Payment Method Modal Alert */}
       <Modal
@@ -1270,7 +1297,7 @@ const PaymentScreen = () => {
       {/* Order Successful Modal */}
       <Modal
         visible={orderSuccessVisible}
-        onPress={pdfGenerationLoading ? null : handleCloseSuccess}
+        onPress={pdfGenerationLoading ? null : invoiceGenerationRecursion}
         contentContainerStyle={styles.modalContent}>
         <View style={styles.modalContent}>
           <AntDesign
@@ -1280,7 +1307,7 @@ const PaymentScreen = () => {
           />
           <Text
             style={[styles.modalTitle, {marginVertical: dimensions.sm / 2}]}>
-            Order Successful!
+            Payment Successful!
           </Text>
           <Text style={[styles.modalText, {marginBottom: dimensions.sm / 2}]}>
             Your order has been placed successfully.
@@ -1288,10 +1315,12 @@ const PaymentScreen = () => {
           <Button
             loading={pdfGenerationLoading}
             mode="contained"
-            onPress={pdfGenerationLoading ? null : handleCloseSuccess}
-            style={styles.modalButton}
+            onPress={pdfGenerationLoading ? null : invoiceGenerationRecursion}
+            style={[styles.modalButton,{width:dimensions.width/1.5}]}
             textColor={colors.pureWhite}>
-            OK
+              {
+                pdfGenerationLoading ? 'Invoice generating.....' : 'Click to generate invoice'
+              }
           </Button>
         </View>
       </Modal>
@@ -1478,7 +1507,7 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     backgroundColor: colors.darkblue,
-  }
+  },
 });
 
 export default PaymentScreen;

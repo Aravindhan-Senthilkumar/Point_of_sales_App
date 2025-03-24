@@ -27,6 +27,7 @@ const ProductDetailsScreen = () => {
   const [isVisible, setIsVisible] = useState();
   const [isOutofStockVisible,setisOutofStockVisible] = useState(false)
   const [isStockLimitModalVisible,setIsStockLimitModalVisible] = useState(false)
+  const [isInvalidModalVisible,setIsInvalidModalVisible] = useState(false)
 
   const outOfStockModal = () => {
     setisOutofStockVisible(true)
@@ -41,6 +42,13 @@ const ProductDetailsScreen = () => {
     },700)
   }
 
+  const invalidModal = () => {
+    setIsInvalidModalVisible(true)
+    setTimeout(() => {
+      setIsInvalidModalVisible(false)
+    },700)
+  }
+
   const handleSuccessAddition = () => {
     setIsVisible(true)
     setTimeout(() => {
@@ -52,12 +60,17 @@ const ProductDetailsScreen = () => {
       Alert('Please select a weight');
       return;
     }
+
+    
     const stock = product.Stocks.find((s) => s.weight === selectedWeight);
-    if (!stock || quantity <= 0 || quantity > stock.assignedValue) {
+    if (quantity > stock.assignedValue) {
       outOfStockModal()
       return;
     }
-    
+    if(!stock || quantity <= 0){
+      invalidModal()
+      return;
+    }
     const cartItem = cart.find((item) => item.productId === product.ProductId && item.weight === selectedWeight);
 
     try {
@@ -325,6 +338,27 @@ const ProductDetailsScreen = () => {
             <Text
               style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
                 Stocks limit reached
+            </Text>
+          </View>
+        </Modal>
+        <Modal 
+        visible={isInvalidModalVisible}
+        contentContainerStyle={{
+          backgroundColor: colors.pureWhite,
+          height: dimensions.height / 4,
+          margin: dimensions.xl,
+          borderRadius: dimensions.sm,
+        }}
+        >
+          <View style={{alignItems: 'center'}}>
+             <Foundation
+                        name="alert"
+                        color={colors.red}
+                        size={dimensions.width / 4}
+                      />
+            <Text
+              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
+                Invalid Quantity
             </Text>
           </View>
         </Modal>

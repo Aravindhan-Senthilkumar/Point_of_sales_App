@@ -258,7 +258,7 @@ const AgentProductsListScreen = () => {
       }}
       ListEmptyComponent={(
       <View style={{ flex:1,justifyContent:'center',alignItems:'center',height:dimensions.height/1.4}}>
-      <Text style={{ fontFamily:fonts.light,fontSize:dimensions.xl/2 }}>No products are assigned</Text>
+      <Text style={{ fontFamily:fonts.light,fontSize:dimensions.xl/2.25 }}>No product assignments have been made...</Text>
       </View>
         )}
       />

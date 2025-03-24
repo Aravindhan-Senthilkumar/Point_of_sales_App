@@ -22,6 +22,7 @@ import useProductStore from '../store/useProductStore';
 import {ActivityIndicator} from 'react-native-paper';
 import {SearchBar} from '@rneui/themed';
 
+
 const AddedProductsList = () => {
   const navigation = useNavigation();
   const [isScanning, setIsScanning] = useState(false);
@@ -121,10 +122,6 @@ const AddedProductsList = () => {
         .includes(searchQuery.toLowerCase().trim()),
   );
 
-  //   const filteredProducts = productListsData.filter((item) => (item.ProductName.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-  //   item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim()
-  // )))
-  //   console.log('filteredProducts: ', filteredProducts);
   return (
     <View style={styles.container}>
       {/* Header Container */}
