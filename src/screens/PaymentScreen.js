@@ -56,6 +56,7 @@ const PaymentScreen = () => {
 
   const renderCartItem = (item, index) => (
     <View key={`${item.productId}-${index}`} style={styles.cartItem}>
+      <Text style={styles.sNoStyle}>{index + 1}. </Text>
       <Image
         source={{uri: item.productImage}}
         style={styles.productImage}
@@ -63,33 +64,28 @@ const PaymentScreen = () => {
       />
       <View style={styles.itemDetails}>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, {fontFamily: fonts.semibold}]}>
+          <Text style={[styles.itemName, styles.semiboldText]}>
             Product Id:{' '}
           </Text>
           {item.productId}
         </Text>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, {fontFamily: fonts.semibold}]}>
-            Name:{' '}
-          </Text>
+          <Text style={[styles.itemName, styles.semiboldText]}>Name: </Text>
           {item.productName}
         </Text>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, {fontFamily: fonts.semibold}]}>
-            Weight:{' '}
-          </Text>
+          <Text style={[styles.itemName, styles.semiboldText]}>Weight: </Text>
           {item.weight} (₹ {item.price})
         </Text>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, {fontFamily: fonts.semibold}]}>
-            Quantity:{' '}
-          </Text>
+          <Text style={[styles.itemName, styles.semiboldText]}>Quantity: </Text>
           {item.quantity}
         </Text>
       </View>
       <Text style={styles.itemPrice}>₹ {item.price * item.quantity}</Text>
     </View>
   );
+
   const handlePayment = () => {
     if (!paymentMethod) {
       handleAlertVisibleFunction();
@@ -225,16 +221,16 @@ const PaymentScreen = () => {
 
   const handleCloseSuccess = async () => {
     try {
-        setPaymentConfirmation(true);
-        clearCart();
-        setOrderSuccessVisible(false);
-        setIsProductUpdated(true);
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{name: 'AgentHomePage'}],
-          }),
-        );
+      setPaymentConfirmation(true);
+      clearCart();
+      setOrderSuccessVisible(false);
+      setIsProductUpdated(true);
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{name: 'AgentHomePage'}],
+        }),
+      );
     } catch (error) {
       console.log('Error while making order', error);
     } finally {
@@ -342,17 +338,17 @@ const PaymentScreen = () => {
   const invoiceGenerationRecursion = async () => {
     setpdfGenerationLoading(true);
     let hasPermission = false;
-        for(let i =0;i < 4;i++){
-          hasPermission = await generatePdf();
-          if(hasPermission) break;
-        }
-        if (!hasPermission) {
-          console.log('Failed to generate PDF after four attempts.');
-        }
-        if(hasPermission){
-          handleCloseSuccess()
-        }
-  }
+    for (let i = 0; i < 4; i++) {
+      hasPermission = await generatePdf();
+      if (hasPermission) break;
+    }
+    if (!hasPermission) {
+      console.log('Failed to generate PDF after four attempts.');
+    }
+    if (hasPermission) {
+      handleCloseSuccess();
+    }
+  };
 
   const generatePdf = async () => {
     const today = new Date();
@@ -709,6 +705,101 @@ const PaymentScreen = () => {
     }
   };
 
+  const ToggleMenuVisibility = () => {
+    setMenuVisible(!menuVisible);
+  };
+
+  const toggleCreditModal = () => {
+    setCreditGateWayModal(!creditGateWayModal);
+  };
+  const togglePaymentGatewayVisibility = () => {
+    setPaymentGatewayVisible(!paymentGatewayVisible)
+  };
+
+  const handleSelectingPaymentMethod = method => {
+    setPaymentMethod(method);
+    setTimeout(() => {
+      setMenuVisible(false);
+    }, 200);
+  };
+
+  const toggleUpiModal = () => {
+    setUpiGateWayModal(!upiGateWayModal);
+    setErrors({transactionId: ''});
+  };
+  const handleChangeTransactionId = id => {
+    setTransactionId(id);
+    setErrors({transactionId: ''});
+  };
+
+  const handleCreditPayMethod = method => {
+    setCreditPayValue(method);
+    setErrors({transactionId: ''});
+  };
+
+  const handlePartialPayCash = () => {
+    setPartialPayMode('Cash');
+    setCashAmount(Math.max(total - 1).toString());
+    setRemainingAmount(1);
+    setErrors({transactionId: ''});
+  };
+  const handlePartialPayUPI = () => {
+    setPartialPayMode('UPI');
+    setUpiAmount(Math.max(total - 1).toString());
+    setRemainingAmount(1);
+  };
+
+  const onChangePartialPayCashInput = (text) => {
+    handleDisableInput(text);
+    if (Number(text) > total) {
+      setCashAmount(Math.max(total - 1).toString());
+      setRemainingAmount(1);
+      return;
+    }
+    setCashAmount(text);
+    setRemainingAmount(total - Number(text));
+  }
+  
+  const onChangePartialPayCashCreditInput = (text) => {
+    handleDisableCreditInput(text);
+    if (Number(text) > total) {
+      setRemainingAmount(
+        Math.max(total - 1).toString(),
+      );
+      setCashAmount(1);
+      return;
+    }
+    setRemainingAmount(text);
+    setCashAmount(total - Number(text));
+  }
+  const onChangePartialPayUpiInput = (text) => {
+      handleDisableInput(text);
+      if (Number(text) > total) {
+        setUpiAmount(Math.max(total - 1).toString());
+        setRemainingAmount(1);
+        return;
+      }
+      setUpiAmount(text);
+      setRemainingAmount(total - Number(text));
+  }
+
+  const onChangePartialPayUpiCreditInput = (text) => {
+      handleDisableCreditInput(text);
+      if (Number(text) > total) {
+        setRemainingAmount(
+          Math.max(total - 1).toString(),
+        );
+        setUpiAmount(1);
+        return;
+      }
+      setRemainingAmount(text);
+      setUpiAmount(total - Number(text));
+  }
+
+  const onDismissCreditModal = () => {
+      setCreditGateWayModal(false);
+      setErrors({transactionId: ''});
+  }
   return (
     <View style={styles.container}>
       {/* Custom Header */}
@@ -723,9 +814,7 @@ const PaymentScreen = () => {
           titleStyle={styles.headerTitle}
         />
       </Appbar.Header>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={styles.scrollContainer}>
+      <View style={styles.scrollContainer}>
         {/* Address Option */}
         <View style={styles.section}>
           <Text style={styles.label}>Address</Text>
@@ -739,73 +828,45 @@ const PaymentScreen = () => {
           <Text style={styles.label}>Payment Method</Text>
           <Button
             mode="text"
-            onPress={() => setMenuVisible(true)}
+            onPress={ToggleMenuVisibility}
             style={styles.paymentButton}
             textColor={colors.black}>
             {paymentMethod || 'Select Payment Method'}
           </Button>
           <Dialog
-            onBackdropPress={() => setMenuVisible(false)}
-            overlayStyle={{
-              borderRadius: dimensions.sm / 2,
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '90%',
-              height: dimensions.height / 4,
-            }}
+            onBackdropPress={ToggleMenuVisibility}
+            overlayStyle={styles.dialogOverlay}
             isVisible={menuVisible}
             animationType="fade">
             <Dialog.Title
               title="Choose Payment Options"
-              titleStyle={{fontSize: dimensions.md, fontWeight: '600'}}
+              titleStyle={styles.dialogTitle}
             />
-            <View
-              style={{
-                borderColor: colors.lightGray,
-                borderWidth: 1,
-                width: dimensions.width / 1.5,
-                paddingVertical: dimensions.sm,
-                borderRadius: dimensions.sm / 2,
-              }}>
-              <View style={{marginLeft: dimensions.sm * 6}}>
+            <View style={styles.dialogContent}>
+              <View style={styles.checkboxContainer}>
                 <CheckBox
-                  textStyle={{fontSize: dimensions.md / 1.25}}
-                  containerStyle={{padding: 0}}
+                  textStyle={styles.checkboxText}
+                  containerStyle={styles.checkboxContainerStyle}
                   checked={paymentMethod === 'Cash'}
                   size={dimensions.md}
                   title="Cash"
-                  onPress={() => {
-                    setPaymentMethod('Cash');
-                    setTimeout(() => {
-                      setMenuVisible(false);
-                    }, 200);
-                  }}
+                  onPress={() => handleSelectingPaymentMethod('Cash')}
                 />
                 <CheckBox
-                  textStyle={{fontSize: dimensions.md / 1.25}}
-                  containerStyle={{padding: 0}}
+                  textStyle={styles.checkboxText}
+                  containerStyle={styles.checkboxContainerStyle}
                   checked={paymentMethod === 'UPI'}
                   size={dimensions.md}
                   title="UPI"
-                  onPress={() => {
-                    setPaymentMethod('UPI');
-                    setTimeout(() => {
-                      setMenuVisible(false);
-                    }, 200);
-                  }}
+                  onPress={() => handleSelectingPaymentMethod('UPI')}
                 />
                 <CheckBox
-                  textStyle={{fontSize: dimensions.md / 1.25}}
-                  containerStyle={{padding: 0}}
+                  textStyle={styles.checkboxText}
+                  containerStyle={styles.checkboxContainerStyle}
                   checked={paymentMethod === 'Credit'}
                   size={dimensions.md}
                   title="Credit"
-                  onPress={() => {
-                    setPaymentMethod('Credit');
-                    setTimeout(() => {
-                      setMenuVisible(false);
-                    }, 200);
-                  }}
+                  onPress={() => handleSelectingPaymentMethod('Credit')}
                 />
               </View>
             </View>
@@ -813,15 +874,20 @@ const PaymentScreen = () => {
         </View>
 
         {/* Products List from Cart */}
-        <View style={[styles.section, {marginBottom: dimensions.md * 7}]}>
+        <View style={[styles.section, styles.orderSummarySection]}>
           <Text style={styles.label}>Order Summary</Text>
-          {cart.length > 0 ? (
-            cart.map((item, index) => renderCartItem(item, index))
-          ) : (
-            <Text style={styles.emptyCart}>No items in cart</Text>
-          )}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.orderSummaryScroll}>
+            {cart.length > 0 ? (
+              cart.map((item, index) => renderCartItem(item, index))
+            ) : (
+              <Text style={styles.emptyCart}>No items in cart</Text>
+            )}
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
+
       <View style={styles.footer}>
         <Text style={styles.totalText}>Total: ₹ {total}</Text>
         <Button
@@ -836,74 +902,50 @@ const PaymentScreen = () => {
       {/* Payment Method Modal Alert */}
       <Modal
         visible={alertVisible}
-        contentContainerStyle={{
-          backgroundColor: colors.pureWhite,
-          height: dimensions.height / 4,
-          margin: dimensions.xl,
-          borderRadius: dimensions.sm,
-        }}>
-        <View style={{alignItems: 'center'}}>
+        contentContainerStyle={styles.alertModalContainer}>
+        <View style={styles.alertContent}>
           <Foundation
             name="alert"
             color={colors.red}
             size={dimensions.width / 4}
           />
-          <Text style={{fontFamily: fonts.semibold}}>
-            Please select payment method
-          </Text>
+          <Text style={styles.alertText}>Please select payment method</Text>
         </View>
       </Modal>
 
       {/* UPI GateWay Modal */}
-      <Modal
-        visible={upiGateWayModal}
-        onDismiss={() => setUpiGateWayModal(false)}>
+      <Modal visible={upiGateWayModal} onDismiss={toggleUpiModal}>
         <View style={styles.modalContent1}>
           <Text style={styles.modalTitle}>UPI Payment Gateway</Text>
           <>
             <Text style={styles.modalText}>
               Amount to be paid:{' '}
-              <Text style={{fontFamily: fonts.semibold}}>₹ {total}</Text>
+              <Text style={styles.modalTextBold}>₹ {total}</Text>
             </Text>
             <View>
               <View>
                 <Image source={require('../images/qrsample.png')} />
               </View>
               <TouchableOpacity
-                style={{
-                  alignSelf: 'center',
-                  borderColor: colors.lightGray,
-                  borderWidth: 1,
-                  paddingHorizontal: dimensions.md / 2,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: dimensions.sm / 2,
-                }}
-                onPress={() => copyToClipboard()}>
-                <Text style={{fontSize: dimensions.sm}}>{upiId}</Text>
+                style={styles.copyButton}
+                onPress={copyToClipboard}>
+                <Text style={styles.copyButtonText}>{upiId}</Text>
                 <MaterialCommunityIcons
                   name="content-copy"
                   size={dimensions.sm}
                 />
               </TouchableOpacity>
             </View>
-            <View
-              style={{width: dimensions.width / 2, marginTop: dimensions.sm}}>
+            <View style={styles.transactionInputContainer}>
               <Input
                 value={transactionId}
-                onChangeText={text => {
-                  setTransactionId(text);
-                  setErrors({transactionId: ''});
-                }}
-                style={{height: dimensions.md, fontSize: dimensions.sm}}
+                onChangeText={id => handleChangeTransactionId(id)}
+                style={styles.transactionInput}
                 placeholder="Enter transaction ID"
-                containerStyle={{marginBottom: -dimensions.md}}
+                containerStyle={styles.transactionInputContainerStyle}
               />
               {errors.transactionId && (
-                <Text style={{color: 'red', marginBottom: dimensions.sm / 2}}>
-                  {errors.transactionId}
-                </Text>
+                <Text style={styles.errorText}>{errors.transactionId}</Text>
               )}
             </View>
           </>
@@ -913,17 +955,14 @@ const PaymentScreen = () => {
             style={styles.modalButton}
             disabled={loading}>
             {loading ? (
-              <Text style={{color: colors.pureWhite}}>{'Confirming....'}</Text>
+              <Text style={styles.buttonText}>Confirming....</Text>
             ) : (
-              <Text style={{color: colors.pureWhite}}>Confirm Payment</Text>
+              <Text style={styles.buttonText}>Confirm Payment</Text>
             )}
           </Button>
           <Button
             mode="outlined"
-            onPress={() => {
-              setUpiGateWayModal(false);
-              setErrors({transactionId: ''});
-            }}
+            onPress={toggleUpiModal}
             style={styles.modalCancelButton}
             textColor={colors.black}>
             Cancel
@@ -932,52 +971,31 @@ const PaymentScreen = () => {
       </Modal>
 
       {/* Credit Gateway Modal */}
-      <Modal
-        visible={creditGateWayModal}
-        onDismiss={() => setCreditGateWayModal(false)}>
+      <Modal visible={creditGateWayModal} onDismiss={toggleCreditModal}>
         <View style={styles.modalContent1}>
           <Text style={styles.modalTitle1}>Credit Payment Options</Text>
           <Text style={styles.modalText1}>Choose any one of the options</Text>
-          <View style={{flexDirection: 'row'}}>
-            <Text style={{fontFamily: fonts.regular, fontSize: dimensions.sm}}>
-              Amount to be paid:{' '}
-            </Text>
-            <Text style={{fontFamily: fonts.bold, fontSize: dimensions.sm}}>
-              ₹ {total}
-            </Text>
+          <View style={styles.amountRow}>
+            <Text style={styles.amountLabel}>Amount to be paid: </Text>
+            <Text style={styles.amountValue}>₹ {total}</Text>
           </View>
-          <View style={{width: '100%'}}>
-            <View
-              style={{
-                alignSelf: 'center',
-                borderColor: colors.lightGray,
-                borderWidth: 1,
-                marginVertical: dimensions.sm,
-                paddingHorizontal: dimensions.md,
-                paddingVertical: dimensions.sm / 2,
-                borderRadius: dimensions.sm,
-              }}>
+          <View style={styles.creditOptionsContainer}>
+            <View style={styles.creditCheckboxContainer}>
               <CheckBox
                 checkedColor={colors.darkblue}
                 size={dimensions.md}
                 checked={creditPayValue === 'FullPayCredit'}
-                onPress={() => {
-                  setCreditPayValue('FullPayCredit');
-                  setErrors({transactionId: ''});
-                }}
+                onPress={() => handleCreditPayMethod('FullPayCredit')}
                 title="Full Pay Credit"
                 checkedIcon="dot-circle-o"
                 uncheckedIcon="circle-o"
-                containerStyle={{padding: dimensions.sm / 4}}
+                containerStyle={styles.creditCheckbox}
               />
               <CheckBox
-                containerStyle={{padding: dimensions.sm / 4}}
+                containerStyle={styles.creditCheckbox}
                 size={dimensions.md}
                 checked={creditPayValue === 'PartialPayValue'}
-                onPress={() => {
-                  setCreditPayValue('PartialPayValue');
-                  setErrors({transactionId: ''});
-                }}
+                onPress={() => handleCreditPayMethod('PartialPayValue')}
                 title="Partial Pay Credit"
                 checkedIcon="dot-circle-o"
                 uncheckedIcon="circle-o"
@@ -986,35 +1004,25 @@ const PaymentScreen = () => {
             </View>
 
             {creditPayValue === 'PartialPayValue' && (
-              <View style={{alignSelf: 'center'}}>
+              <View style={styles.partialPayContainer}>
                 <View>
-                  <View
-                    style={{flexDirection: 'row', marginLeft: dimensions.md}}>
+                  <View style={styles.partialPayModeContainer}>
                     <CheckBox
                       checked={partialPayMode === 'Cash'}
-                      onPress={() => {
-                        setPartialPayMode('Cash');
-                        setCashAmount(Math.max(total - 1).toString());
-                        setRemainingAmount(1);
-                        setErrors({transactionId: ''});
-                      }}
+                      onPress={handlePartialPayCash}
                       checkedColor={colors.orange}
                       size={dimensions.md}
-                      containerStyle={{paddingVertical: 0}}
+                      containerStyle={styles.partialPayCheckbox}
                       title="Cash"
                       checkedIcon="dot-circle-o"
                       uncheckedIcon="circle-o"
                     />
                     <CheckBox
                       checked={partialPayMode === 'UPI'}
-                      onPress={() => {
-                        setPartialPayMode('UPI');
-                        setUpiAmount(Math.max(total - 1).toString());
-                        setRemainingAmount(1);
-                      }}
+                      onPress={handlePartialPayUPI}
                       checkedColor={colors.orange}
                       size={dimensions.md}
-                      containerStyle={{paddingVertical: 0}}
+                      containerStyle={styles.partialPayCheckbox}
                       title="UPI"
                       checkedIcon="dot-circle-o"
                       uncheckedIcon="circle-o"
@@ -1023,76 +1031,30 @@ const PaymentScreen = () => {
                 </View>
 
                 {partialPayMode === 'Cash' && (
-                  <View style={{marginVertical: dimensions.md}}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        borderColor: colors.lightGray,
-                        borderWidth: 1,
-                        paddingHorizontal: dimensions.md / 2,
-                        paddingVertical: dimensions.sm / 2,
-                        borderRadius: dimensions.sm / 2,
-                      }}>
-                      <View style={{gap: dimensions.xl}}>
-                        <Text
-                          style={{
-                            fontSize: dimensions.sm,
-                            fontFamily: fonts.regular,
-                          }}>
-                          Pay Amount:
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: dimensions.sm,
-                            fontFamily: fonts.regular,
-                          }}>
-                          Credit:
-                        </Text>
+                  <View style={styles.partialPayInputContainer}>
+                    <View style={styles.partialPayInputWrapper}>
+                      <View style={styles.partialPayLabels}>
+                        <Text style={styles.partialPayLabel}>Pay Amount:</Text>
+                        <Text style={styles.partialPayLabel}>Credit:</Text>
                       </View>
-
-                      <View
-                        style={{
-                          width: dimensions.width / 3,
-                        }}>
+                      <View style={styles.partialPayInputs}>
                         <Input
                           keyboardType="number-pad"
                           disabled={disableInput}
                           value={cashAmount.toString()}
-                          onChangeText={text => {
-                            handleDisableInput(text);
-                            if (Number(text) > total) {
-                              setCashAmount(Math.max(total - 1).toString());
-                              setRemainingAmount(1);
-                              return;
-                            }
-                            setCashAmount(text);
-                            setRemainingAmount(total - Number(text));
-                          }}
+                          onChangeText={text => onChangePartialPayCashInput(text)}
                           placeholder="Cash"
-                          containerStyle={{height: dimensions.xl * 1.5}}
-                          style={{fontSize: dimensions.sm}}
+                          containerStyle={styles.inputContainerStyle}
+                          style={styles.inputStyle}
                         />
                         <Input
                           keyboardType="number-pad"
                           disabled={disableCreditInput}
-                          onChangeText={text => {
-                            handleDisableCreditInput(text);
-                            if (Number(text) > total) {
-                              setRemainingAmount(
-                                Math.max(total - 1).toString(),
-                              );
-                              setCashAmount(1);
-                              return;
-                            }
-                            setRemainingAmount(text);
-                            setCashAmount(total - Number(text));
-                          }}
+                          onChangeText={text => onChangePartialPayCashCreditInput(text)}
                           value={remainingAmount}
                           placeholder={remainingAmount.toString()}
-                          containerStyle={{height: dimensions.xl * 1.5}}
-                          style={{fontSize: dimensions.sm}}
+                          containerStyle={styles.inputContainerStyle}
+                          style={styles.inputStyle}
                         />
                       </View>
                     </View>
@@ -1100,124 +1062,54 @@ const PaymentScreen = () => {
                 )}
 
                 {partialPayMode === 'UPI' && (
-                  <View style={{marginVertical: dimensions.md}}>
+                  <View style={styles.partialPayInputContainer}>
                     {/* Qr code Container */}
-                    <View style={{alignSelf: 'center'}}>
+                    <View style={styles.qrCodeContainer}>
                       <Image
                         source={require('../images/qrsample.png')}
-                        style={{
-                          height: dimensions.xl * 4,
-                          width: dimensions.xl * 4,
-                          resizeMode: 'cover',
-                          alignSelf: 'center',
-                        }}
+                        style={styles.qrCodeImage}
                       />
                       <TouchableOpacity
-                        onPress={() => copyToClipboard()}
-                        style={{
-                          borderColor: colors.lightGray,
-                          borderWidth: 1,
-                          paddingHorizontal: dimensions.md / 2,
-                          paddingVertical: dimensions.sm / 2,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: dimensions.sm / 2,
-                          marginBottom: dimensions.sm,
-                        }}>
-                        <Text style={{fontSize: dimensions.sm}}>{upiId}</Text>
+                        onPress={copyToClipboard}
+                        style={styles.copyButtonUPI}>
+                        <Text style={styles.copyButtonText}>{upiId}</Text>
                         <MaterialCommunityIcons
                           name="content-copy"
                           size={dimensions.sm}
                         />
                       </TouchableOpacity>
                     </View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        borderColor: colors.lightGray,
-                        borderWidth: 1,
-                        paddingHorizontal: dimensions.md / 2,
-                        paddingVertical: dimensions.sm / 2,
-                        borderRadius: dimensions.sm / 2,
-                      }}>
-                      <View style={{gap: dimensions.md * 1.25}}>
-                        <Text
-                          style={{
-                            fontSize: dimensions.sm,
-                            fontFamily: fonts.regular,
-                          }}>
-                          UTR Id:
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: dimensions.sm,
-                            fontFamily: fonts.regular,
-                          }}>
-                          Pay Amount:
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: dimensions.sm,
-                            fontFamily: fonts.regular,
-                          }}>
-                          Credit:
-                        </Text>
+                    <View style={styles.partialPayInputWrapper}>
+                      <View style={styles.partialPayLabelsUPI}>
+                        <Text style={styles.partialPayLabel}>UTR Id:</Text>
+                        <Text style={styles.partialPayLabel}>Pay Amount:</Text>
+                        <Text style={styles.partialPayLabel}>Credit:</Text>
                       </View>
-
-                      <View
-                        style={{
-                          width: dimensions.width / 3,
-                        }}>
+                      <View style={styles.partialPayInputs}>
                         <Input
                           value={transactionId}
-                          onChangeText={text => {
-                            setTransactionId(text);
-                            setErrors({transactionId: ''});
-                          }}
+                          onChangeText={id => handleChangeTransactionId(id)}
                           placeholder="Transaction ID"
-                          containerStyle={{height: dimensions.xl * 1.5}}
-                          style={{fontSize: dimensions.sm}}
+                          containerStyle={styles.inputContainerStyle}
+                          style={styles.inputStyle}
                         />
                         <Input
                           keyboardType="number-pad"
                           disabled={disableInput}
                           value={upiAmount.toString()}
-                          onChangeText={text => {
-                            handleDisableInput(text);
-                            if (Number(text) > total) {
-                              setUpiAmount(Math.max(total - 1).toString());
-                              setRemainingAmount(1);
-                              return;
-                            }
-                            setUpiAmount(text);
-                            setRemainingAmount(total - Number(text));
-                          }}
+                          onChangeText={text => onChangePartialPayUpiInput(text)}
                           placeholder="Amount Sent"
-                          containerStyle={{height: dimensions.xl * 1.5}}
-                          style={{fontSize: dimensions.sm}}
+                          containerStyle={styles.inputContainerStyle}
+                          style={styles.inputStyle}
                         />
                         <Input
                           keyboardType="number-pad"
                           disabled={disableCreditInput}
-                          onChangeText={text => {
-                            handleDisableCreditInput(text);
-                            if (Number(text) > total) {
-                              setRemainingAmount(
-                                Math.max(total - 1).toString(),
-                              );
-                              setUpiAmount(1);
-                              return;
-                            }
-                            setRemainingAmount(text);
-                            setUpiAmount(total - Number(text));
-                          }}
+                          onChangeText={text => onChangePartialPayUpiCreditInput(text)}
                           value={remainingAmount}
                           placeholder={remainingAmount.toString()}
-                          containerStyle={{height: dimensions.xl * 1.5}}
-                          style={{fontSize: dimensions.sm}}
+                          containerStyle={styles.inputContainerStyle}
+                          style={styles.inputStyle}
                         />
                       </View>
                     </View>
@@ -1227,28 +1119,23 @@ const PaymentScreen = () => {
             )}
           </View>
           {errors.transactionId && (
-            <Text style={{color: 'red', marginBottom: dimensions.sm / 2}}>
-              {errors.transactionId}
-            </Text>
+            <Text style={styles.errorTextCredit}>{errors.transactionId}</Text>
           )}
-          <View style={{marginBottom: dimensions.md}}>
+          <View style={styles.modalButtonsContainer}>
             <Button
               mode="contained"
               onPress={handlePaymentSuccess}
               style={styles.modalButton1}
               disabled={loading}>
               {loading ? (
-                <Text style={{color: colors.pureWhite}}>Confirming....</Text>
+                <Text style={styles.buttonText}>Confirming....</Text>
               ) : (
-                <Text style={{color: colors.pureWhite}}>Confirm Payment</Text>
+                <Text style={styles.buttonText}>Confirm Payment</Text>
               )}
             </Button>
             <Button
               mode="outlined"
-              onPress={() => {
-                setCreditGateWayModal(false);
-                setErrors({transactionId: ''});
-              }}
+              onPress={onDismissCreditModal}
               style={styles.modalCancelButton1}
               textColor={colors.black}>
               Cancel
@@ -1260,15 +1147,15 @@ const PaymentScreen = () => {
       {/* Payment Gateway Modal */}
       <Modal
         visible={paymentGatewayVisible}
-        onDismiss={() => setPaymentGatewayVisible(false)}
+        onDismiss={togglePaymentGatewayVisibility}
         contentContainerStyle={styles.modalContent}>
         <View style={styles.modalContent}>
-          <Text style={[styles.modalTitle, {marginBottom: dimensions.sm}]}>
+          <Text style={[styles.modalTitle, styles.modalTitleMargin]}>
             Payment Gateway
           </Text>
-          <Text style={[styles.modalText, {marginBottom: dimensions.sm}]}>
+          <Text style={[styles.modalText, styles.modalTextMargin]}>
             Processing payment of{' '}
-            <Text style={[styles.modalText, {fontFamily: fonts.bold}]}>
+            <Text style={[styles.modalText, styles.modalTextBold]}>
               ₹{total}
             </Text>{' '}
             via {paymentMethod}...
@@ -1279,14 +1166,14 @@ const PaymentScreen = () => {
             style={styles.modalButton}
             disabled={loading}>
             {loading ? (
-              <Text style={{color: colors.pureWhite}}>Confirming....</Text>
+              <Text style={styles.buttonText}>Confirming....</Text>
             ) : (
-              <Text style={{color: colors.pureWhite}}>Confirm Payment</Text>
+              <Text style={styles.buttonText}>Confirm Payment</Text>
             )}
           </Button>
           <Button
             mode="outlined"
-            onPress={() => setPaymentGatewayVisible(false)}
+            onPress={togglePaymentGatewayVisibility}
             style={styles.modalCancelButton}
             textColor={colors.black}>
             Cancel
@@ -1305,22 +1192,21 @@ const PaymentScreen = () => {
             size={dimensions.width / 4}
             color="green"
           />
-          <Text
-            style={[styles.modalTitle, {marginVertical: dimensions.sm / 2}]}>
+          <Text style={[styles.modalTitle, styles.modalTitleSuccessMargin]}>
             Payment Successful!
           </Text>
-          <Text style={[styles.modalText, {marginBottom: dimensions.sm / 2}]}>
+          <Text style={[styles.modalText, styles.modalTextSuccessMargin]}>
             Your order has been placed successfully.
           </Text>
           <Button
             loading={pdfGenerationLoading}
             mode="contained"
             onPress={pdfGenerationLoading ? null : invoiceGenerationRecursion}
-            style={[styles.modalButton,{width:dimensions.width/1.5}]}
+            style={[styles.modalButton, styles.invoiceButton]}
             textColor={colors.pureWhite}>
-              {
-                pdfGenerationLoading ? 'Invoice generating.....' : 'Click to generate invoice'
-              }
+            {pdfGenerationLoading
+              ? 'Invoice generating.....'
+              : 'Click to generate invoice'}
           </Button>
         </View>
       </Modal>
@@ -1359,15 +1245,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  orderSummarySection: {
+    marginBottom: dimensions.md * 7,
+  },
   label: {
     fontFamily: fonts.semibold,
     fontSize: dimensions.sm,
     color: colors.black,
     marginBottom: dimensions.sm / 2,
-  },
-  addressInput: {
-    backgroundColor: colors.pureWhite,
-    marginBottom: dimensions.sm,
   },
   paymentButton: {
     backgroundColor: colors.pureWhite,
@@ -1375,36 +1260,32 @@ const styles = StyleSheet.create({
     borderColor: colors.lightGray,
     marginBottom: dimensions.sm,
   },
-  cartItem: {
-    flexDirection: 'row',
+  dialogOverlay: {
+    borderRadius: dimensions.sm / 2,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: dimensions.sm / 2,
-    marginBottom: dimensions.sm / 2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
+    width: '90%',
+    height: dimensions.height / 4,
   },
-  productImage: {
-    width: dimensions.width / 6,
-    height: dimensions.width / 6,
-    borderRadius: dimensions.sm,
-    marginRight: dimensions.sm,
-    borderWidth: 1,
+  dialogTitle: {
+    fontSize: dimensions.md,
+    fontWeight: '600',
+  },
+  dialogContent: {
     borderColor: colors.lightGray,
+    borderWidth: 1,
+    width: dimensions.width / 1.5,
+    paddingVertical: dimensions.sm,
+    borderRadius: dimensions.sm / 2,
   },
-  itemDetails: {
-    flex: 2,
+  checkboxContainer: {
+    marginLeft: dimensions.sm * 6,
   },
-  itemName: {
-    fontFamily: fonts.regular,
-    fontSize: dimensions.sm,
-    color: colors.black,
+  checkboxText: {
+    fontSize: dimensions.md / 1.25,
   },
-  itemPrice: {
-    fontFamily: fonts.regular,
-    fontSize: dimensions.sm,
-    color: colors.black,
-    textAlign: 'right',
-    flex: 1,
+  checkboxContainerStyle: {
+    padding: 0,
   },
   emptyCart: {
     fontFamily: fonts.regular,
@@ -1412,80 +1293,6 @@ const styles = StyleSheet.create({
     color: colors.grayText,
     textAlign: 'center',
     paddingVertical: dimensions.sm,
-  },
-  totalText: {
-    fontFamily: fonts.bold,
-    fontSize: dimensions.md,
-    color: colors.black,
-    textAlign: 'right',
-    marginTop: dimensions.sm,
-  },
-  payButton: {
-    backgroundColor: colors.darkblue,
-    marginTop: dimensions.sm,
-    marginBottom: dimensions.md,
-  },
-  modalContent: {
-    backgroundColor: colors.pureWhite,
-    borderRadius: dimensions.sm,
-    padding: dimensions.md,
-    alignItems: 'center',
-    margin: dimensions.md,
-  },
-  modalTitle: {
-    fontFamily: fonts.bold,
-    fontSize: dimensions.md,
-    color: colors.black,
-  },
-  modalText: {
-    fontFamily: fonts.regular,
-    fontSize: dimensions.sm,
-    color: colors.black,
-    textAlign: 'center',
-  },
-  modalButton: {
-    backgroundColor: colors.darkblue,
-    borderRadius: dimensions.sm / 2,
-    width: dimensions.width / 2,
-  },
-  modalCancelButton: {
-    backgroundColor: colors.pureWhite,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    marginTop: dimensions.sm,
-    borderRadius: dimensions.sm / 2,
-    width: dimensions.width / 2,
-  },
-  modalContent1: {
-    backgroundColor: colors.pureWhite,
-    borderRadius: dimensions.sm,
-    alignItems: 'center',
-    margin: dimensions.md,
-    paddingVertical: dimensions.xl,
-  },
-  modalTitle1: {
-    fontFamily: fonts.bold,
-    fontSize: dimensions.md,
-    color: colors.black,
-  },
-  modalText1: {
-    fontFamily: fonts.regular,
-    fontSize: dimensions.sm,
-    color: colors.black,
-    textAlign: 'center',
-  },
-  modalButton1: {
-    backgroundColor: colors.darkblue,
-    borderRadius: dimensions.sm / 2,
-    width: dimensions.width / 2,
-  },
-  modalCancelButton1: {
-    backgroundColor: colors.pureWhite,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    marginTop: dimensions.sm,
-    borderRadius: dimensions.sm / 2,
-    width: dimensions.width / 2,
   },
   footer: {
     position: 'absolute',
@@ -1507,6 +1314,270 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     backgroundColor: colors.darkblue,
+  },
+  alertModalContainer: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 4,
+    margin: dimensions.xl,
+    borderRadius: dimensions.sm,
+  },
+  alertContent: {
+    alignItems: 'center',
+  },
+  alertText: {
+    fontFamily: fonts.semibold,
+  },
+  modalContent1: {
+    backgroundColor: colors.pureWhite,
+    borderRadius: dimensions.sm,
+    alignItems: 'center',
+    margin: dimensions.md,
+    paddingVertical: dimensions.xl,
+  },
+  modalTitle: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
+    color: colors.black,
+  },
+  modalText: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+    color: colors.black,
+    textAlign: 'center',
+  },
+  modalTextBold: {
+    fontFamily: fonts.semibold,
+  },
+  copyButton: {
+    alignSelf: 'center',
+    borderColor: colors.lightGray,
+    borderWidth: 1,
+    paddingHorizontal: dimensions.md / 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: dimensions.sm / 2,
+  },
+  copyButtonText: {
+    fontSize: dimensions.sm,
+  },
+  transactionInputContainer: {
+    width: dimensions.width / 2,
+    marginTop: dimensions.sm,
+  },
+  transactionInput: {
+    height: dimensions.md,
+    fontSize: dimensions.sm,
+  },
+  transactionInputContainerStyle: {
+    marginBottom: -dimensions.md,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: dimensions.sm / 2,
+  },
+  modalButton: {
+    backgroundColor: colors.darkblue,
+    borderRadius: dimensions.sm / 2,
+    width: dimensions.width / 2,
+  },
+  modalCancelButton: {
+    backgroundColor: colors.pureWhite,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    marginTop: dimensions.sm,
+    borderRadius: dimensions.sm / 2,
+    width: dimensions.width / 2,
+  },
+  modalTitle1: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
+    color: colors.black,
+  },
+  modalText1: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+    color: colors.black,
+    textAlign: 'center',
+  },
+  amountRow: {
+    flexDirection: 'row',
+  },
+  amountLabel: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+  },
+  amountValue: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.sm,
+  },
+  creditOptionsContainer: {
+    width: '100%',
+  },
+  creditCheckboxContainer: {
+    alignSelf: 'center',
+    borderColor: colors.lightGray,
+    borderWidth: 1,
+    marginVertical: dimensions.sm,
+    paddingHorizontal: dimensions.md,
+    paddingVertical: dimensions.sm / 2,
+    borderRadius: dimensions.sm,
+  },
+  creditCheckbox: {
+    padding: dimensions.sm / 4,
+  },
+  partialPayContainer: {
+    alignSelf: 'center',
+  },
+  partialPayModeContainer: {
+    flexDirection: 'row',
+    marginLeft: dimensions.md,
+  },
+  partialPayCheckbox: {
+    paddingVertical: 0,
+  },
+  partialPayInputContainer: {
+    marginVertical: dimensions.md,
+  },
+  partialPayInputWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderColor: colors.lightGray,
+    borderWidth: 1,
+    paddingHorizontal: dimensions.md / 2,
+    paddingVertical: dimensions.sm / 2,
+    borderRadius: dimensions.sm / 2,
+  },
+  partialPayLabels: {
+    gap: dimensions.xl,
+  },
+  partialPayLabel: {
+    fontSize: dimensions.sm,
+    fontFamily: fonts.regular,
+  },
+  partialPayInputs: {
+    width: dimensions.width / 3,
+  },
+  inputContainerStyle: {
+    height: dimensions.xl * 1.5,
+  },
+  inputStyle: {
+    fontSize: dimensions.sm,
+  },
+  qrCodeContainer: {
+    alignSelf: 'center',
+  },
+  qrCodeImage: {
+    height: dimensions.xl * 4,
+    width: dimensions.xl * 4,
+    resizeMode: 'cover',
+    alignSelf: 'center',
+  },
+  copyButtonUPI: {
+    borderColor: colors.lightGray,
+    borderWidth: 1,
+    paddingHorizontal: dimensions.md / 2,
+    paddingVertical: dimensions.sm / 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: dimensions.sm / 2,
+    marginBottom: dimensions.sm,
+  },
+  partialPayLabelsUPI: {
+    gap: dimensions.md * 1.25,
+  },
+  errorTextCredit: {
+    color: 'red',
+    marginBottom: dimensions.sm / 2,
+  },
+  modalButtonsContainer: {
+    marginBottom: dimensions.md,
+  },
+  modalButton1: {
+    backgroundColor: colors.darkblue,
+    borderRadius: dimensions.sm / 2,
+    width: dimensions.width / 2,
+  },
+  modalCancelButton1: {
+    backgroundColor: colors.pureWhite,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    marginTop: dimensions.sm,
+    borderRadius: dimensions.sm / 2,
+    width: dimensions.width / 2,
+  },
+  modalContent: {
+    backgroundColor: colors.pureWhite,
+    borderRadius: dimensions.sm,
+    padding: dimensions.md,
+    alignItems: 'center',
+    margin: dimensions.md,
+  },
+  modalTitleMargin: {
+    marginBottom: dimensions.sm,
+  },
+  modalTextMargin: {
+    marginBottom: dimensions.sm,
+  },
+  modalTextBold: {
+    fontFamily: fonts.bold,
+  },
+  modalTitleSuccessMargin: {
+    marginVertical: dimensions.sm / 2,
+    textAlign:'center'
+  },
+  modalTextSuccessMargin: {
+    marginBottom: dimensions.sm / 2,
+  },
+  invoiceButton: {
+    width: dimensions.width / 1.5,
+  },
+  buttonText: {
+    color: colors.pureWhite,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: dimensions.sm / 2,
+    marginBottom: dimensions.sm / 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+  },
+  productImage: {
+    width: dimensions.width / 6,
+    height: dimensions.width / 6,
+    borderRadius: dimensions.sm,
+    marginRight: dimensions.sm,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+  },
+  itemDetails: {
+    flex: 2,
+  },
+  sNoStyle: {
+    fontSize: dimensions.sm,
+    fontFamily: fonts.semibold,
+    alignSelf: 'flex-start',
+  },
+  itemName: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+    color: colors.black,
+  },
+  semiboldText: {
+    fontFamily: fonts.semibold,
+  },
+  itemPrice: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+    color: colors.black,
+    textAlign: 'right',
+    flex: 1,
+  },
+  orderSummaryScroll: {
+    maxHeight: dimensions.height / 3, // Adjust this value based on your needs
   },
 });
 

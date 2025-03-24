@@ -1,4 +1,4 @@
-import { Image, Pressable,Text, StyleSheet, TouchableWithoutFeedback, View, ScrollView } from 'react-native'
+import { Image, Pressable,Text, StyleSheet,  View } from 'react-native'
 import React from 'react'
 import { colors } from '../constants/colors';
 import { dimensions } from '../constants/dimensions';
@@ -7,7 +7,8 @@ import { fonts } from '../constants/fonts';
 import { useNavigation } from '@react-navigation/native';
 
 const WelcomePage = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation(); 
+  
   return (
     <>
     <View style={styles.container}>

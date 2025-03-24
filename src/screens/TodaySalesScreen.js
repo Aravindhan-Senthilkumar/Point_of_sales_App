@@ -65,107 +65,114 @@ export default function TodaySalesScreen() {
     const totalAvailableStock = item.reduce((prev,curr) => prev + curr.remainingStock,0);
     setTotalAvailableStock(totalAvailableStock)
   }
-
+  
   return (
     <>
       <Appbar.Header style={styles.headerContainer}>
         <Appbar.BackAction
           onPress={() => navigation.goBack()}
           color={colors.pureWhite}
-          />
+        />
         <Appbar.Content
           title="Today Sales Report"
           color={colors.pureWhite}
           titleStyle={styles.headerText}
-          />
+        />
       </Appbar.Header>
-      {
-        emptySales === false
-        ? (
-          loading
-          ? (
-          <View style={{ flex:1,justifyContent:'center',alignItems:'center' }}>
-            <ActivityIndicator size='large' color={colors.darkblue}/>
+      {emptySales === false ? (
+        loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.darkblue} />
           </View>
-        )
-          : (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.date}>{currentDate}</Text>
-          <View style={styles.agentContainer}>
-            <Text style={styles.agentId}>Agent ID: {agent.AgentID}</Text>
-          </View>
-        </View>
-  
-        <View style={styles.tableContainer}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.columnHeader, { flex: 1.5 }]}>Product ID</Text>
-            <Text style={[styles.columnHeader, { flex: 1 }]}>Weight</Text>
-            <Text style={[styles.columnHeader, { flex: 1 }]}>Sold</Text>
-            <Text style={[styles.columnHeader, { flex: 1.5 }]}>Available</Text>
-            <Text style={[styles.columnHeader, { flex: 1.5 }]}>Total (₹)</Text>
-          </View>
-          {
-            mapArray.map((item,index) => {
-              return (
-              <View style={[styles.tableRow]} key={index}>
-              <Text style={[styles.cellText, { flex: 1.5 }]}>{item.productId}</Text>
-              <Text style={[styles.cellText, { flex: 1 }]}>{item.weight}</Text>
-              <Text style={[styles.cellText, { flex: 1 }]}>{item.soldStock}</Text>
-              <Text style={[styles.cellText, { flex: 1.5 }]}>{item.totalStock - item.soldStock}</Text>
-              <Text style={[styles.cellText, { flex: 1.5 }]}>₹{item.price * item.soldStock}</Text>
+        ) : (
+          <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <Text style={styles.date}>{currentDate}</Text>
+              <View style={styles.agentContainer}>
+                <Text style={styles.agentId}>Agent ID: {agent.AgentID}</Text>
+              </View>
             </View>
-              )
-            })
-          }
-          <View style={styles.totalRow}>
-              <Text style={[styles.totalText, { flex: 2.5 }]}>Total</Text>
-              <Text style={[styles.totalText, { flex: 1 }]}>{totalSoldStock}</Text>
-              <Text style={[styles.totalText, { flex: 1.5 }]}>{totalAvailableStock}</Text>
-              <Text style={[styles.totalText, { flex: 1.5 }]}> ₹{fetchedOrders.UPITotal + fetchedOrders.CashTotal + fetchedOrders.CreditTotal}</Text>
-          </View>
-        </View>
-  
-        <View style={styles.paymentBreakdown}>
-          <Text style={styles.sectionTitle}>Payment Breakdown</Text>
-          <View style={styles.paymentMethod}>
-            <MaterialIcons name="phone-android" size={24} color="#4CAF50" />
-            <Text style={styles.paymentText}><Text style={styles.innerPaymentText}>UPI:</Text> ₹{fetchedOrders.UPITotal}</Text>
-          </View>
-          <View style={styles.paymentMethod}>
-            <MaterialIcons name="money" size={24} color="#2196F3" />
-            <Text style={styles.paymentText}><Text style={styles.innerPaymentText}>Cash:</Text> ₹{fetchedOrders.CashTotal
-            }</Text>
-          </View>
-          <View style={styles.paymentMethod}>
-            <MaterialIcons name="credit-card" size={24} color="#FF9800" />
-            <Text style={styles.paymentText}><Text style={styles.innerPaymentText}>Credit:</Text> ₹{fetchedOrders.CreditTotal}</Text>
-          </View>
-        </View>
-  
-        <View style={styles.verificationSection}>
-          <Text style={styles.sectionTitle}>Verification</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter verification token"
-            value={verificationToken}
-            onChangeText={setVerificationToken}
-            secureTextEntry
-            />
-          <Button onPress={fetchOrdersfromFirestore} color={colors.darkblue} buttonStyle={{ borderRadius:dimensions.xl,paddingVertical:dimensions.sm/2 }}>Verify Report</Button>
-        </View>
-      </ScrollView>
-          )
-        ) 
-       : (
+
+            <View style={styles.tableContainer}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.columnHeader, styles.productIdHeader]}>Product ID</Text>
+                <Text style={[styles.columnHeader, styles.weightHeader]}>Weight</Text>
+                <Text style={[styles.columnHeader, styles.soldHeader]}>Sold</Text>
+                <Text style={[styles.columnHeader, styles.availableHeader]}>Available</Text>
+                <Text style={[styles.columnHeader, styles.totalHeader]}>Total (₹)</Text>
+              </View>
+              {mapArray.map((item, index) => (
+                <View style={styles.tableRow} key={index}>
+                  <Text style={[styles.cellText, styles.productIdCell]}>{item.productId}</Text>
+                  <Text style={[styles.cellText, styles.weightCell]}>{item.weight}</Text>
+                  <Text style={[styles.cellText, styles.soldCell]}>{item.soldStock}</Text>
+                  <Text style={[styles.cellText, styles.availableCell]}>
+                    {item.totalStock - item.soldStock}
+                  </Text>
+                  <Text style={[styles.cellText, styles.totalCell]}>
+                    ₹{item.price * item.soldStock}
+                  </Text>
+                </View>
+              ))}
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalText, styles.totalLabel]}>Total</Text>
+                <Text style={[styles.totalText, styles.totalSold]}>{totalSoldStock}</Text>
+                <Text style={[styles.totalText, styles.totalAvailable]}>{totalAvailableStock}</Text>
+                <Text style={[styles.totalText, styles.totalAmount]}>
+                  ₹{fetchedOrders.UPITotal + fetchedOrders.CashTotal + fetchedOrders.CreditTotal}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.paymentBreakdown}>
+              <Text style={styles.sectionTitle}>Payment Breakdown</Text>
+              <View style={styles.paymentMethod}>
+                <MaterialIcons name="phone-android" size={24} color="#4CAF50" />
+                <Text style={styles.paymentText}>
+                  <Text style={styles.innerPaymentText}>UPI:</Text> ₹{fetchedOrders.UPITotal}
+                </Text>
+              </View>
+              <View style={styles.paymentMethod}>
+                <MaterialIcons name="money" size={24} color="#2196F3" />
+                <Text style={styles.paymentText}>
+                  <Text style={styles.innerPaymentText}>Cash:</Text> ₹{fetchedOrders.CashTotal}
+                </Text>
+              </View>
+              <View style={styles.paymentMethod}>
+                <MaterialIcons name="credit-card" size={24} color="#FF9800" />
+                <Text style={styles.paymentText}>
+                  <Text style={styles.innerPaymentText}>Credit:</Text> ₹{fetchedOrders.CreditTotal}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.verificationSection}>
+              <Text style={styles.sectionTitle}>Verification</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter verification token"
+                value={verificationToken}
+                onChangeText={setVerificationToken}
+                secureTextEntry
+              />
+              <Button
+                onPress={fetchOrdersfromFirestore}
+                color={colors.darkblue}
+                buttonStyle={styles.verifyButton}
+              >
+                Verify Report
+              </Button>
+            </View>
+          </ScrollView>
+        )
+      ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No sales have been recorded yet...</Text>
         </View>
-       )
-      }
-  </>
+      )}
+    </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -173,20 +180,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.halfWhite,
     padding: dimensions.sm,
   },
+  headerContainer: {
+    backgroundColor: colors.orange,
+    height: dimensions.xl * 2.25,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerText: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.sm * 1.5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
-    marginBottom: dimensions.sm/2,
+    marginBottom: dimensions.sm / 2,
   },
   date: {
     fontSize: dimensions.md,
-    fontFamily:fonts.bold
+    fontFamily: fonts.bold,
   },
   agentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   agentId: {
-    fontFamily:fonts.regular,
-    fontSize: dimensions.xl/2,
+    fontFamily: fonts.regular,
+    fontSize: dimensions.xl / 2,
   },
   tableContainer: {
     backgroundColor: colors.pureWhite,
@@ -200,51 +223,87 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    padding: dimensions.sm ,
-    backgroundColor:colors.darkblue
+    padding: dimensions.sm,
+    backgroundColor: colors.darkblue,
   },
   columnHeader: {
     color: colors.pureWhite,
     fontSize: dimensions.sm,
-    fontWeight:'bold',
-    textAlign:'center'
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  productIdHeader: {
+    flex: 1.5,
+  },
+  weightHeader: {
+    flex: 1,
+  },
+  soldHeader: {
+    flex: 1,
+  },
+  availableHeader: {
+    flex: 1.5,
+  },
+  totalHeader: {
+    flex: 1.5,
   },
   tableRow: {
     flexDirection: 'row',
-    padding: dimensions.md/2,
+    padding: dimensions.md / 2,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-  },
-  evenRow: {
-    backgroundColor: '#fff',
-  },
-  oddRow: {
-    backgroundColor: '#f9f9f9',
   },
   cellText: {
     fontSize: dimensions.sm,
     color: '#333',
-    textAlign:'center'
+    textAlign: 'center',
+  },
+  productIdCell: {
+    flex: 1.5,
+  },
+  weightCell: {
+    flex: 1,
+  },
+  soldCell: {
+    flex: 1,
+  },
+  availableCell: {
+    flex: 1.5,
+  },
+  totalCell: {
+    flex: 1.5,
   },
   totalRow: {
     padding: dimensions.sm,
     backgroundColor: '#D0E1FF',
-    flexDirection:'row',
-    justifyContent:'space-evenly'
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
   },
   totalText: {
     fontSize: dimensions.sm,
     fontWeight: 'bold',
     color: '#375BB5',
-    textAlign:'center'
+    textAlign: 'center',
+  },
+  totalLabel: {
+    flex: 2.5,
+  },
+  totalSold: {
+    flex: 1,
+  },
+  totalAvailable: {
+    flex: 1.5,
+  },
+  totalAmount: {
+    flex: 1.5,
   },
   paymentBreakdown: {
     backgroundColor: colors.pureWhite,
     borderRadius: dimensions.sm / 2,
     padding: dimensions.sm,
-    borderColor:colors.pureWhite,
-    borderWidth:1,
-    marginTop:dimensions.sm,
+    borderColor: colors.pureWhite,
+    borderWidth: 1,
+    marginTop: dimensions.sm,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -252,8 +311,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   sectionTitle: {
-    fontFamily:fonts.bold,
-    fontSize: dimensions.xl/2.5,
+    fontFamily: fonts.bold,
+    fontSize: dimensions.xl / 2.5,
     marginBottom: dimensions.sm / 2,
   },
   paymentMethod: {
@@ -262,18 +321,21 @@ const styles = StyleSheet.create({
     marginBottom: dimensions.sm / 2,
   },
   paymentText: {
-    fontFamily:fonts.semibold,
+    fontFamily: fonts.semibold,
     fontSize: dimensions.sm,
     marginLeft: dimensions.sm,
+  },
+  innerPaymentText: {
+    fontFamily: fonts.medium,
   },
   verificationSection: {
     backgroundColor: colors.pureWhite,
     borderRadius: dimensions.sm / 2,
     padding: dimensions.sm,
-    borderColor:colors.pureWhite,
-    borderWidth:1,
-    marginTop:dimensions.sm,
-    marginBottom:dimensions.md,
+    borderColor: colors.pureWhite,
+    borderWidth: 1,
+    marginTop: dimensions.sm,
+    marginBottom: dimensions.md,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -285,35 +347,22 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: dimensions.sm,
     padding: dimensions.sm,
-    fontSize: dimensions.xl/2,
+    fontSize: dimensions.xl / 2,
     marginBottom: dimensions.sm,
-    height:dimensions.sm * 4
+    height: dimensions.sm * 4,
   },
-  headerContainer: {
-      backgroundColor: colors.orange,
-      height: dimensions.xl * 2.25,
-      width: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    headerText: {
-      fontFamily: fonts.bold,
-      fontSize: dimensions.sm * 1.5,
-    },
-    innerPaymentText:{
-      fontFamily:fonts.medium
-    },
-    FlatListStyle:{
-      height:dimensions.height / 4.75
-    },
-    emptyContainer:{
-      flex:1,
-      justifyContent:'center',
-      alignItems:'center',
-      marginBottom:dimensions.xl
-    },
-    emptyText:{
-      fontFamily:fonts.light,
-      fontSize:dimensions.sm
-    }
+  verifyButton: {
+    borderRadius: dimensions.xl,
+    paddingVertical: dimensions.sm / 2,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: dimensions.xl,
+  },
+  emptyText: {
+    fontFamily: fonts.light,
+    fontSize: dimensions.sm,
+  },
 });

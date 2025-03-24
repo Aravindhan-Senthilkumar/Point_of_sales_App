@@ -8,7 +8,6 @@ import ProductAddingScreen from '../screens/ProductAddingScreen';
 import ProductUpdatingScreen from '../screens/ProductUpdatingScreen';
 import ViewReports from '../screens/ViewReports';
 import PendingOrders from '../screens/PendingOrders';
-import StockListingScreen from '../screens/StockListingScreen';
 import AssignScreen from '../screens/AssignScreen';
 import AssignViewScreen from '../screens/AssignViewScreen';
 
@@ -25,7 +24,6 @@ const AdminStack = () => {
             <Stack.Screen name='ProductUpdatingScreen' component={ProductUpdatingScreen}/>
             <Stack.Screen name='ViewReports' component={ViewReports}/>
             <Stack.Screen name='PendingOrders' component={PendingOrders}/>
-            <Stack.Screen name='StockListingScreen' component={StockListingScreen}/>
             <Stack.Screen name='AssignScreen' component={AssignScreen}/>
             <Stack.Screen name='AssignViewScreen' component={AssignViewScreen}/>
             </Stack.Navigator>

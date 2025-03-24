@@ -31,7 +31,6 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import { Button } from '@rneui/themed';
 
 const AdminLogin = () => {
-  // State Updates
   const [logoUri, setLogoUri] = useState(null);
   const [username, setUserName] = useState('');
   const [password, setPassword] = useState('');
@@ -45,11 +44,8 @@ const AdminLogin = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
-  //Zustand Store
-  const {adminUsername, setAdminUserName, setAdminId, adminId} =
-    useAdminStore();
+  const {adminUsername, setAdminUserName, setAdminId, adminId} = useAdminStore();
 
-  //LogoUploadingFirebaseStorage
   const handleLogoUpload = () => {
     if (isLogin) {
       const options = {mediaType: 'photo', quality: 1};
@@ -77,7 +73,6 @@ const AdminLogin = () => {
         }
         setUploadingLogo(true);
         try {
-          // Upload to Firebase Storage
           const fileName = `admin_logos/${adminUsername}/logo.jpg`;
           console.log('fileName: ', fileName);
           const reference = await firebase.storage().ref(fileName);
@@ -89,7 +84,6 @@ const AdminLogin = () => {
           await reference.put(blob);
           const imageUrl = await reference.getDownloadURL();
           console.log('imageUrl: ', imageUrl);
-          // Upload URL to Firestore
           if (adminUsername) {
             await getFirestore()
               .collection('admin')
@@ -118,7 +112,7 @@ const AdminLogin = () => {
   };
 
   const {setAuthUser} = useAuthStore();
-  //Login
+
   const handleLogin = async () => {
     setLoading(true);
     try {
@@ -129,16 +123,17 @@ const AdminLogin = () => {
       }
       const trimmedUsername = username.trimEnd();
       const isExists = await getFirestore()
-      .collection('admin')
-      .doc(trimmedUsername).get()
-      
+        .collection('admin')
+        .doc(trimmedUsername)
+        .get();
+
       if (!isExists.exists) {
         setError('Invalid Admin credentials');
         setLoading(false);
         return;
       }
       const dbPassword = isExists.data().password;
-      
+
       if (dbPassword !== password.trimEnd()) {
         setError('Wrong password');
         setLoading(false);
@@ -198,9 +193,11 @@ const AdminLogin = () => {
       setRestoreLoading(false);
     }
   };
+
   const [restoreFunctionLoading, setRestoreFunctionLoading] = useState(false);
   const [restoreModalContent, setRestoreModalContent] = useState('');
- const [restoreModalVisible, setRestoreModalVisible] = useState(false);
+  const [restoreModalVisible, setRestoreModalVisible] = useState(false);
+
   const RestoreDataFromDrive = async () => {
     setRestoreModalVisible(true);
     setRestoreFunctionLoading(true);
@@ -213,7 +210,6 @@ const AdminLogin = () => {
       const token = currentUser.accessToken;
       console.log('token: ', token);
 
-      // Search for the latest backup file in the root directory
       const searchResponse = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=name contains 'backup_${userId}_'&orderBy=createdTime desc&fields=files(id, name)`,
         {
@@ -231,7 +227,6 @@ const AdminLogin = () => {
 
       const latestFile = searchData.files[0];
       console.log('LatestFile', latestFile);
-      // Download backup file
       const downloadResponse = await fetch(
         `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`,
         {
@@ -258,7 +253,6 @@ const AdminLogin = () => {
       const ProductsData = processingCollection(jsonData[3]);
       console.log('ProductsData: ', ProductsData);
 
-      // Restore Metadata to Firestore
       await restoringDataFunction(Metadata, 'metadata');
       await restoringDataFunction(AgentsData, 'agents');
       await restoringDataFunction(OrderData, 'orders');
@@ -275,7 +269,12 @@ const AdminLogin = () => {
   const checkFireStoreIntegrity = async () => {
     setIntegrityLoading(true);
     try {
-      const [agentsSnapShot, ordersSnapShot, ProductsSnapShot, MetadataSnapShot] = await Promise.all([
+      const [
+        agentsSnapShot,
+        ordersSnapShot,
+        ProductsSnapShot,
+        MetadataSnapShot,
+      ] = await Promise.all([
         getFirestore().collection('agents').limit(1).get(),
         getFirestore().collection('orders').limit(1).get(),
         getFirestore().collection('products').limit(1).get(),
@@ -313,7 +312,40 @@ const AdminLogin = () => {
       setRestoreModalContent('No restore needed');
     }
   };
-  
+
+  const togglePasswordVisible = () => {
+    setPasswordVisible(!passwordVisible)
+  }
+
+  const handleChangeUsername = (text) => {
+    setUserName(text);
+    setError('');
+  }
+
+  const handleChangePassword = (text) => {
+    setPassword(text);
+    setError('');
+  }
+
+  const handleSuccesModalFunction = () => {
+    setIsVisible(false);
+    setModalContent('');
+  }
+  const handleErrorModalFunction = () => {
+    setIsErrorVisible(false);
+    setModalError('');
+    setModalContent('');
+  }
+
+  const handleRestoreFailedModalFunction = () => {
+    setRestoreModalVisible(false);
+    handleRestoreNeeded();
+  }
+
+  const handleNavigateToHomepage = () => {
+    setRestoreModalVisible(false);
+    setAuthUser('Admin');
+  }
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
@@ -349,7 +381,7 @@ const AdminLogin = () => {
                   name="refresh-ccw"
                   size={dimensions.xl / 2}
                   color={colors.pureWhite}
-                  style={{padding: dimensions.sm / 4}}
+                  style={styles.featherIconRefresh}
                 />
               ) : (
                 <Feather
@@ -369,7 +401,7 @@ const AdminLogin = () => {
               <MaterialCommunityIcons
                 name="account"
                 size={dimensions.md}
-                style={{marginLeft: dimensions.sm}}
+                style={styles.iconMarginLeft}
               />
               <TextInput
                 placeholder="Enter your username"
@@ -377,24 +409,16 @@ const AdminLogin = () => {
                 numberOfLines={1}
                 style={styles.textInputStyle}
                 value={username}
-                onChangeText={text => {
-                  setUserName(text);
-                  setError('');
-                }}
+                onChangeText={(text) => handleChangeUsername(text)}
                 editable={isLogin ? false : true}
               />
             </View>
             <View style={styles.inputContainer2}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: dimensions.sm / 2,
-                }}>
+              <View style={styles.passwordInputWrapper}>
                 <MaterialCommunityIcons
                   name="key"
                   size={dimensions.md}
-                  style={{marginLeft: dimensions.sm}}
+                  style={styles.iconMarginLeft}
                 />
                 <TextInput
                   placeholder="Enter your password"
@@ -404,20 +428,20 @@ const AdminLogin = () => {
                   style={styles.textInputStyle}
                   secureTextEntry={!passwordVisible}
                   value={password}
-                  onChangeText={text => {
-                    setPassword(text);
-                    setError('');
-                  }}
+                  onChangeText={(text) => handleChangePassword(text)}
                   editable={isLogin ? false : true}
                 />
               </View>
 
               {passwordVisible ? (
-                <Pressable onPress={() => setPasswordVisible(!passwordVisible)}>
-                  <MaterialCommunityIcons name="eye-off" size={dimensions.md} />
+                <Pressable onPress={togglePasswordVisible}>
+                  <MaterialCommunityIcons
+                    name="eye-off"
+                    size={dimensions.md}
+                  />
                 </Pressable>
               ) : (
-                <Pressable onPress={() => setPasswordVisible(!passwordVisible)}>
+                <Pressable onPress={togglePasswordVisible}>
                   <MaterialCommunityIcons name="eye" size={dimensions.md} />
                 </Pressable>
               )}
@@ -427,19 +451,34 @@ const AdminLogin = () => {
 
           {isLogin ? (
             <View>
-              <Button onPress={handleRestoreNeeded}  ViewComponent={LinearGradient} linearGradientProps={{
-    colors: [colors.orange, colors.darkblue],
-    start: { x: 0, y: 0.5 },
-    end: { x: 1, y: 0.5 },
-  }} buttonStyle={{ width:dimensions.width/1.5,borderRadius:dimensions.sm,height:dimensions.sm * 3 }} titleStyle={{ fontFamily:fonts.bold }}>Proceed to Homepage</Button>
+              <Button
+                onPress={handleRestoreNeeded}
+                ViewComponent={LinearGradient}
+                linearGradientProps={{
+                  colors: [colors.orange, colors.darkblue],
+                  start: {x: 0, y: 0.5},
+                  end: {x: 1, y: 0.5},
+                }}
+                buttonStyle={styles.buttonStyle}
+                titleStyle={styles.buttonTitleStyle}>
+                Proceed to Homepage
+              </Button>
             </View>
           ) : (
             <View>
-  <Button loading={loading} onPress={loading ? null : handleLogin}  ViewComponent={LinearGradient} linearGradientProps={{
-    colors: [colors.orange, colors.darkblue],
-    start: { x: 0, y: 0.5 },
-    end: { x: 1, y: 0.5 },
-  }} buttonStyle={{ width:dimensions.width/1.5,borderRadius:dimensions.sm,height:dimensions.sm * 3 }} titleStyle={{ fontFamily:fonts.bold }}>Login</Button>
+              <Button
+                loading={loading}
+                onPress={loading ? null : handleLogin}
+                ViewComponent={LinearGradient}
+                linearGradientProps={{
+                  colors: [colors.orange, colors.darkblue],
+                  start: {x: 0, y: 0.5},
+                  end: {x: 1, y: 0.5},
+                }}
+                buttonStyle={styles.buttonStyle}
+                titleStyle={styles.buttonTitleStyle}>
+                Login
+              </Button>
             </View>
           )}
         </ScrollView>
@@ -448,81 +487,50 @@ const AdminLogin = () => {
 
         <Modal
           visible={isVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}>
-          <View style={{alignItems: 'center'}}>
+          contentContainerStyle={styles.modalContentContainer}>
+          <View style={styles.modalInnerContainer}>
             <AntDesign
               name="checkcircle"
               color="green"
               size={dimensions.width / 4}
             />
-            <Text
-              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-              {modalContent}
-            </Text>
-            <Button 
-            onPress={() => {
-                setIsVisible(false);
-                setModalContent('');
-              }} 
-            title='Proceed' 
-            style={{ width:'80%' }}
-            buttonStyle={{ paddingHorizontal: dimensions.md * 2, margin: dimensions.sm,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+            <Text style={styles.modalText}>{modalContent}</Text>
+            <Button
+              onPress={handleSuccesModalFunction}
+              title="Proceed"
+              style={styles.modalButtonWrapper}
+              buttonStyle={styles.modalButtonStyle}
             />
           </View>
         </Modal>
 
         <Modal
           visible={isErrorVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}>
-          <View style={{alignItems: 'center'}}>
+          contentContainerStyle={styles.modalContentContainer}>
+          <View style={styles.modalInnerContainer}>
             <Foundation
               name="alert"
               color={colors.red}
               size={dimensions.width / 4}
             />
-            <Text style={{fontFamily: fonts.semibold}}>{modalError}</Text>
-            <Button 
-            onPress={() => {
-              setIsErrorVisible(false);
-              setModalError('');
-              setModalContent('');
-            }}
-            title='Try again' 
-            style={{ width:'80%' }}
-            buttonStyle={{ paddingHorizontal: dimensions.md * 2,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+            <Text style={styles.modalErrorText}>{modalError}</Text>
+            <Button
+              onPress={handleErrorModalFunction}
+              title="Try again"
+              style={styles.modalButtonWrapper}
+              buttonStyle={styles.modalButtonStyle}
             />
           </View>
         </Modal>
 
         <Modal
           visible={restoreModalVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}>
-          <View style={{alignItems: 'center'}}>
+          contentContainerStyle={styles.modalContentContainer}>
+          <View style={styles.modalInnerContainer}>
             {restoreFunctionLoading ? (
               <>
                 <ActivityIndicator size="large" />
-                <Text
-                  style={{
-                    fontFamily: fonts.semibold,
-                    marginTop: dimensions.sm,
-                  }}>
-                  Restoring....
-                </Text>
+                <Text style={styles.modalLoadingText}>Restoring....</Text>
               </>
             ) : restoreModalContent === 'Restore failed' ? (
               <>
@@ -531,17 +539,12 @@ const AdminLogin = () => {
                   color={colors.red}
                   size={dimensions.width / 4}
                 />
-                <Text style={{fontFamily: fonts.semibold}}>
-                  {restoreModalContent}
-                </Text>
-                <Button 
-                 onPress={() => {
-                setRestoreModalVisible(false);
-                handleRestoreNeeded();
-                }}
-                title='Proceed' 
-                style={{ width:'80%' }}
-                buttonStyle={{ paddingHorizontal: dimensions.md * 2, margin: dimensions.sm,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+                <Text style={styles.modalErrorText}>{restoreModalContent}</Text>
+                <Button
+                  onPress={handleRestoreFailedModalFunction}
+                  title="Proceed"
+                  style={styles.modalButtonWrapper}
+                  buttonStyle={styles.modalButtonStyle}
                 />
               </>
             ) : (
@@ -551,21 +554,12 @@ const AdminLogin = () => {
                   color="green"
                   size={dimensions.width / 4}
                 />
-                <Text
-                  style={{
-                    fontFamily: fonts.semibold,
-                    marginTop: dimensions.sm,
-                  }}>
-                  {restoreModalContent}
-                </Text>
-                <Button 
-                onPress={() => {
-                  setRestoreModalVisible(false);
-                  setAuthUser('Admin')
-                }} 
-                title='Proceed' 
-                style={{ width:'80%' }}
-                buttonStyle={{ paddingHorizontal: dimensions.md * 2, margin: dimensions.sm,backgroundColor:colors.darkblue,borderRadius:dimensions.md }}
+                <Text style={styles.modalText}>{restoreModalContent}</Text>
+                <Button
+                  onPress={handleNavigateToHomepage}
+                  title="Proceed"
+                  style={styles.modalButtonWrapper}
+                  buttonStyle={styles.modalButtonStyle}
                 />
               </>
             )}
@@ -675,4 +669,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
+  featherIconRefresh: {
+    padding: dimensions.sm / 4,
+  },
+  iconMarginLeft: {
+    marginLeft: dimensions.sm,
+  },
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: dimensions.sm / 2,
+  },
+  buttonStyle: {
+    width: dimensions.width / 1.5,
+    borderRadius: dimensions.sm,
+    height: dimensions.sm * 3,
+  },
+  buttonTitleStyle: {
+    fontFamily: fonts.bold,
+  },
+  modalContentContainer: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 3,
+    margin: dimensions.xl,
+    borderRadius: dimensions.sm,
+  },
+  modalInnerContainer: {
+    alignItems: 'center',
+  },
+  modalText: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
+  },
+  modalErrorText: {
+    fontFamily: fonts.semibold,
+  },
+  modalButtonWrapper: {
+    width: '80%',
+  },
+  modalButtonStyle: {
+    paddingHorizontal: dimensions.md * 2,
+    margin: dimensions.sm,
+    backgroundColor: colors.darkblue,
+    borderRadius: dimensions.md,
+  },
+  modalLoadingText: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
+  }
 });

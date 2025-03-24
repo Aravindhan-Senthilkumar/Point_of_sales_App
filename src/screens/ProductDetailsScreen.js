@@ -115,6 +115,16 @@ const ProductDetailsScreen = () => {
 
   const selectedStock = product.Stocks.find((s) => s.weight === selectedWeight) || {};
 
+  const toggleMenuVisibility = () => {
+    setMenuVisible(!menuVisible)
+  }
+
+  const onChangeWeight = () => {
+    setSelectedWeight(stock.weight);
+    setTimeout(() => {
+      setMenuVisible(false);
+    }, 200);
+  }
   return (
     <View style={styles.container}>
       {/* Custom Header */}
@@ -125,26 +135,22 @@ const ProductDetailsScreen = () => {
           color={colors.pureWhite}
           titleStyle={styles.headerTitle}
         />
-       <View style={styles.badgeContainer}>
-        {
-          cart.length > 0 && (
-        <Badge size={dimensions.md / 1.25} style={styles.badge}>
-          {cart.length}
-        </Badge>
-          )
-        }
-        <Appbar.Action icon="cart" color={colors.pureWhite} onPress={() => navigation.navigate('CartScreen')} />
-      </View>
+        <View style={styles.badgeContainer}>
+          {cart.length > 0 && (
+            <Badge size={dimensions.md / 1.25} style={styles.badge}>
+              {cart.length}
+            </Badge>
+          )}
+          <Appbar.Action icon="cart" color={colors.pureWhite} onPress={() => navigation.navigate('CartScreen')} />
+        </View>
       </Appbar.Header>
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContainer}>
-        {/* Product Image */}
-
         {/* Product Details */}
         <View style={styles.detailsContainer}>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: product.ProductImage }} style={styles.productImage} resizeMode="cover" />
-        </View>
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: product.ProductImage }} style={styles.productImage} resizeMode="cover" />
+          </View>
           {/* Product ID */}
           <View style={styles.detailRow}>
             <Text style={styles.label}>Product ID :</Text>
@@ -156,7 +162,6 @@ const ProductDetailsScreen = () => {
             <Text style={styles.label}>Name :</Text>
             <Text style={styles.value}>{product.ProductName}</Text>
           </View>
-
 
           {/* Category Name */}
           <View style={styles.detailRow}>
@@ -170,7 +175,6 @@ const ProductDetailsScreen = () => {
             <Text style={styles.value}>{product.BrandName}</Text>
           </View>
 
-
           {/* Barcode Image */}
           <View style={styles.barcodeContainer}>
             <Text style={styles.label}>Barcode</Text>
@@ -181,52 +185,52 @@ const ProductDetailsScreen = () => {
             />
           </View>
 
-          {/* Weight Selection with Menu */} 
+          {/* Weight Selection with Menu */}
           <View style={styles.stockSelection}>
-            <Dialog 
-            animationType='fade'
-            isVisible={menuVisible} 
-            overlayStyle={{ width:'90%',borderRadius:dimensions.sm }}
-            onDismiss={() => setMenuVisible(false)}
-            onBackdropPress={() => setMenuVisible(false)}
+            <Dialog
+              animationType="fade"
+              isVisible={menuVisible}
+              overlayStyle={styles.dialogOverlay}
+              onDismiss={toggleMenuVisibility}
+              onBackdropPress={toggleMenuVisibility}
             >
-              <View style={{ justifyContent:'center',borderWidth:1,borderColor:colors.lightGray,borderRadius:dimensions.sm }}>
-              <Dialog.Title title='Weight Selection' titleStyle={{ textAlign:'center',marginTop:dimensions.sm,fontSize:dimensions.xl /1.25 }}/>
-              <View style={{ marginLeft:dimensions.xl * 3 }}>
-                {product.Stocks.map((stock) => (
-                  <CheckBox 
-                  title={stock.weight}
-                  key={stock.weight}
-                  checked={selectedWeight === stock.weight}
-                  onPress={() => {
-                    setSelectedWeight(stock.weight);
-                    setTimeout(() => {
-                      setMenuVisible(false);
-                    },200)
-                  }}
-                  />
-                ))}
+              <View style={styles.dialogContent}>
+                <Dialog.Title title="Weight Selection" titleStyle={styles.dialogTitle} />
+                <View style={styles.checkboxContainer}>
+                  {product.Stocks.map((stock) => (
+                    <CheckBox
+                      title={stock.weight}
+                      key={stock.weight}
+                      checked={selectedWeight === stock.weight}
+                      onPress={() => {
+                        setSelectedWeight(stock.weight);
+                        setTimeout(() => {
+                          setMenuVisible(false);
+                        }, 200);
+                      }}
+                    />
+                  ))}
                 </View>
               </View>
             </Dialog>
             <Text style={styles.label}>Select Weight</Text>
-                <Button
-                  mode="outlined"
-                  onPress={() => setMenuVisible(true)}
-                  style={styles.menuButton}
-                  textColor={colors.black}
-                >
-                  {selectedWeight ? `${selectedWeight}` : 'Select Weight'}
-                </Button>
+            <Button
+              mode="outlined"
+              onPress={toggleMenuVisibility}
+              style={styles.menuButton}
+              textColor={colors.black}
+            >
+              {selectedWeight ? `${selectedWeight}` : 'Select Weight'}
+            </Button>
             {selectedWeight && (
               <View style={styles.stockDetails}>
                 <Text style={styles.stockInfo}>
-                  Price:  <Text style={{ fontFamily:fonts.bold }}>₹ {selectedStock.price}</Text> | Stocks Available: 
-                  {
-                    selectedStock.stocks === 0 
-                    ? (<Text style={{ fontFamily:fonts.bold,color:'red' }}> Out of Stock</Text>)
-                    : (<Text style={{ fontFamily:fonts.bold }}> {selectedStock.assignedValue}</Text>)
-                  }
+                  Price: <Text style={styles.boldText}>₹ {selectedStock.price}</Text> | Stocks Available:
+                  {selectedStock.stocks === 0 ? (
+                    <Text style={styles.outOfStockText}> Out of Stock</Text>
+                  ) : (
+                    <Text style={styles.boldText}> {selectedStock.assignedValue}</Text>
+                  )}
                 </Text>
               </View>
             )}
@@ -252,116 +256,88 @@ const ProductDetailsScreen = () => {
           </View>
 
           {/* Add to Cart Button */}
-          {
-            cartItemUpdate 
-            ? (
-              <Button
-            mode="contained"
-            onPress={handleAddToCart}
-            style={styles.addButton}
-            textColor={colors.pureWhite}
-          >
-            Add More
-          </Button>
-            )
-            : (
-              <Button
-            mode="contained"
-            onPress={handleAddToCart}
-            style={styles.addButton}
-            textColor={colors.pureWhite}
-          >
-            Add to Cart
-          </Button>
-            ) 
-          }
+          {cartItemUpdate ? (
+            <Button
+              mode="contained"
+              onPress={handleAddToCart}
+              style={styles.addButton}
+              textColor={colors.pureWhite}
+            >
+              Add More
+            </Button>
+          ) : (
+            <Button
+              mode="contained"
+              onPress={handleAddToCart}
+              style={styles.addButton}
+              textColor={colors.pureWhite}
+            >
+              Add to Cart
+            </Button>
+          )}
         </View>
       </ScrollView>
-        <Modal
-          visible={isVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 4,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}
-          >
-          <View style={{alignItems: 'center'}}>
-            <AntDesign
-              name="checkcircle"
-              color="green"
-              size={dimensions.width / 4}
-            />
-            <Text
-              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-                Successfully Added to the Cart
-            </Text>
-          </View>
-        </Modal>
-        {/* Out of stock Modal */}
-        <Modal 
+      <Modal
+        visible={isVisible}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <View style={styles.modalContent}>
+          <AntDesign
+            name="checkcircle"
+            color="green"
+            size={dimensions.width / 4}
+          />
+          <Text style={styles.modalText}>
+            Successfully Added to the Cart
+          </Text>
+        </View>
+      </Modal>
+      {/* Out of Stock Modal */}
+      <Modal
         visible={isOutofStockVisible}
-        contentContainerStyle={{
-          backgroundColor: colors.pureWhite,
-          height: dimensions.height / 4,
-          margin: dimensions.xl,
-          borderRadius: dimensions.sm,
-        }}
-        >
-          <View style={{alignItems: 'center'}}>
-             <Foundation
-                        name="alert"
-                        color={colors.red}
-                        size={dimensions.width / 4}
-                      />
-            <Text
-              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-                Out of Stock
-            </Text>
-          </View>
-        </Modal>
-        <Modal 
+        contentContainerStyle={styles.modalContainer}
+      >
+        <View style={styles.modalContent}>
+          <Foundation
+            name="alert"
+            color={colors.red}
+            size={dimensions.width / 4}
+          />
+          <Text style={styles.modalText}>
+            Out of Stock
+          </Text>
+        </View>
+      </Modal>
+      <Modal
         visible={isStockLimitModalVisible}
-        contentContainerStyle={{
-          backgroundColor: colors.pureWhite,
-          height: dimensions.height / 4,
-          margin: dimensions.xl,
-          borderRadius: dimensions.sm,
-        }}
-        >
-          <View style={{alignItems: 'center'}}>
-             <Foundation
-                        name="alert"
-                        color={colors.red}
-                        size={dimensions.width / 4}
-                      />
-            <Text
-              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-                Stocks limit reached
-            </Text>
-          </View>
-        </Modal>
-        <Modal 
+        contentContainerStyle={styles.modalContainer}
+      >
+        <View style={styles.modalContent}>
+          <Foundation
+            name="alert"
+            color={colors.red}
+            size={dimensions.width / 4}
+          />
+          <Text style={styles.modalText}>
+            Stocks limit reached
+          </Text>
+        </View>
+      </Modal>
+      <Modal
         visible={isInvalidModalVisible}
-        contentContainerStyle={{
-          backgroundColor: colors.pureWhite,
-          height: dimensions.height / 4,
-          margin: dimensions.xl,
-          borderRadius: dimensions.sm,
-        }}
-        >
-          <View style={{alignItems: 'center'}}>
-             <Foundation
-                        name="alert"
-                        color={colors.red}
-                        size={dimensions.width / 4}
-                      />
-            <Text
-              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-                Invalid Quantity
-            </Text>
-          </View>
-        </Modal>
+        contentContainerStyle={styles.modalContainer}
+      >
+        <View style={styles.modalContent}>
+          <Foundation
+            name="alert"
+            color={colors.red}
+            size={dimensions.width / 4}
+          />
+          <Text style={styles.modalText}>
+            Invalid Quantity
+          </Text>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -382,19 +358,19 @@ const styles = StyleSheet.create({
     fontSize: dimensions.md,
     color: colors.pureWhite,
   },
+  badgeContainer: {
+    position: 'relative',
+    alignItems: 'flex-end',
+  },
+  badge: {
+    position: 'absolute',
+    top: dimensions.sm / 1.75,
+    right: dimensions.sm / 1.25,
+    zIndex: 1,
+  },
   scrollContainer: {
     flex: 1,
-    marginTop:dimensions.sm/2
-  },
-  imageContainer: {
-    alignItems: 'center',
-  },
-  productImage: {
-    width: dimensions.width/3,
-    height: dimensions.width/3,
-    borderRadius: dimensions.sm,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
+    marginTop: dimensions.sm / 2,
   },
   detailsContainer: {
     marginHorizontal: dimensions.sm,
@@ -406,6 +382,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  imageContainer: {
+    alignItems: 'center',
+  },
+  productImage: {
+    width: dimensions.width / 3,
+    height: dimensions.width / 3,
+    borderRadius: dimensions.sm,
+    borderWidth: 1,
+    borderColor: colors.lightGray,
   },
   detailRow: {
     flexDirection: 'row',
@@ -434,7 +420,28 @@ const styles = StyleSheet.create({
     width: dimensions.width / 2,
     height: dimensions.xl * 3,
     resizeMode: 'contain',
-    marginBottom:dimensions.sm
+    marginBottom: dimensions.sm,
+  },
+  stockSelection: {
+    // No inline styles were present here initially; added as a container style
+  },
+  dialogOverlay: {
+    width: '90%',
+    borderRadius: dimensions.sm,
+  },
+  dialogContent: {
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: dimensions.sm,
+  },
+  dialogTitle: {
+    textAlign: 'center',
+    marginTop: dimensions.sm,
+    fontSize: dimensions.xl / 1.25,
+  },
+  checkboxContainer: {
+    marginLeft: dimensions.xl * 3,
   },
   menuButton: {
     backgroundColor: colors.pureWhite,
@@ -442,27 +449,37 @@ const styles = StyleSheet.create({
     borderColor: colors.lightGray,
     marginVertical: dimensions.sm,
   },
+  stockDetails: {
+    // No inline styles were present here initially; added as a container style
+  },
   stockInfo: {
     fontFamily: fonts.regular,
     fontSize: dimensions.sm,
     color: colors.black,
   },
+  boldText: {
+    fontFamily: fonts.bold,
+  },
+  outOfStockText: {
+    fontFamily: fonts.bold,
+    color: 'red',
+  },
   quantityContainer: {
-    flex:1,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal:dimensions.xl,
-    gap:dimensions.md,
+    marginHorizontal: dimensions.xl,
+    gap: dimensions.md,
   },
   quantityButton: {
-    flex:1,
+    flex: 1,
     backgroundColor: colors.lightGray,
     padding: dimensions.sm / 6,
     borderRadius: dimensions.sm / 2,
-    justifyContent:'center',
-    alignItems:'center',
-    height:dimensions.xl
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: dimensions.xl,
   },
   quantityText: {
     fontSize: dimensions.md,
@@ -479,51 +496,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.darkblue,
     marginTop: dimensions.md,
   },
-  stockHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.orange,
-    paddingVertical: dimensions.sm / 2,
-    paddingHorizontal: dimensions.sm,
-    borderRadius: dimensions.sm / 2,
+  modalContainer: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 4,
+    margin: dimensions.xl,
+    borderRadius: dimensions.sm,
   },
-  stockHeaderText: {
-    flex: 1,
-    fontFamily: fonts.bold,
-    fontSize: dimensions.sm,
-    color: colors.pureWhite,
-    textAlign: 'center',
+  modalContent: {
+    alignItems: 'center',
   },
-  stockRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: dimensions.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
-  },
-  stockCell: {
-    flex: 1,
-    fontFamily: fonts.regular,
-    fontSize: dimensions.sm,
-    color: colors.black,
-    textAlign: 'center',
-  },
-  noStocksText: {
-    fontFamily: fonts.regular,
-    fontSize: dimensions.sm,
-    color: colors.grayText,
-    textAlign: 'center',
-    paddingVertical: dimensions.sm,
-  },
-  badgeContainer: {
-    position: 'relative', 
-    alignItems: 'flex-end', 
-  },
-  badge: {
-    position: 'absolute',
-    top: dimensions.sm / 1.75, 
-    right: dimensions.sm / 1.25, 
-    zIndex: 1, 
+  modalText: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
   },
 });
 

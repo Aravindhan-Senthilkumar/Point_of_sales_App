@@ -27,9 +27,7 @@ import useCartStore from '../store/useCartStore';
 import FastImage from 'react-native-fast-image';
 import { Button as RNEUButton } from '@rneui/themed'; 
 
-
 const AgentLogin = () => {
-
   // KeyPad Arrays
   const arrayButton1 = [1, 2, 3, '⌫'];
   const arrayButton2 = [4, 5, 6, 'CLR'];
@@ -43,17 +41,17 @@ const AgentLogin = () => {
   const [modalContent, setModalContent] = useState('');
   const [modalError, setModalError] = useState('');
   const [isErrorVisible, setIsErrorVisible] = useState(false);
-  const [logoLoading,setLogoLoading] = useState(false);
+  const [logoLoading, setLogoLoading] = useState(false);
   const [logoUri, setLogoUri] = useState();
 
-  //Zustand Store
-  const { setAgentData,agent,setAdminLogoUri } = useAgentStore();
+  // Zustand Store
+  const { setAgentData, agent, setAdminLogoUri } = useAgentStore();
+  const { setCartFromBackup, cart } = useCartStore();
+  const { setAuthUser } = useAuthStore();
 
-  const { setCartFromBackup,cart } = useCartStore();
   console.log('cart: ', cart);
 
-  const { setAuthUser } = useAuthStore();
-  //KeyPad Pressing Function
+  // KeyPad Pressing Function
   const handlePress = key => {
     setError('');
     if (key === '⌫') {
@@ -64,26 +62,21 @@ const AgentLogin = () => {
       setPin(pin + key.toString());
     }
   };
+
   const fetchAdminLogo = useCallback(async () => {
-    setLogoLoading(true)
-    try{
+    setLogoLoading(true);
+    try {
       const adminLogo = await getFirestore().collection('admin').doc('admin').get();
       setLogoUri(adminLogo.exists ? adminLogo.data().AdminLogoUri : null);
       setAdminLogoUri(adminLogo.data().AdminLogoUri);
-    }catch(error){
-     setLogoUri(null) 
-    }finally{
-      setLogoLoading(false)
+    } catch (error) {
+      setLogoUri(null);
+    } finally {
+      setLogoLoading(false);
     }
-  },[])
+  }, []);
 
-  //Fetching Admin LOGO 
-  useEffect(() => {
-    fetchAdminLogo();
-  },[fetchAdminLogo])
-
-
-  //Handle Agent Login
+  // Handle Agent Login
   const handleLogin = async () => {
     setLoading(true);
     if (pin.length < 6) {
@@ -110,96 +103,117 @@ const AgentLogin = () => {
     }
   };
 
-  //Backup and Restore gdrive backup
+  // Backup and Restore gdrive backup
   const [restoreLoading, setRestoreLoading] = useState(false);
-  const [restoreModalVisible,setRestoreVisible] = useState(false)  
-  const [restoreModalContent,setRestoreModalContent] = useState('');
+  const [restoreModalVisible, setRestoreVisible] = useState(false);
+  const [restoreModalContent, setRestoreModalContent] = useState('');
 
-    useEffect(() => {
-          GoogleSignin.configure({
-            webClientId:
-              '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
-            scopes: ['https://www.googleapis.com/auth/drive.file'],
-          });
-        }, []);
+  const RestoreDataFromDrive = async () => {
+    setRestoreLoading(true);
+    try {
+      const userId = agent.AgentID;
+      await GoogleSignin.signIn();
+      const currentUser = await GoogleSignin.getTokens();
+      const token = currentUser.accessToken;
+      const searchResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name contains 'backup_${userId}_'&orderBy=createdTime desc&fields=files(id, name)`,
+        {
+          method: 'GET',
+          headers: {Authorization: `Bearer ${token}`},
+        },
+      );
+      const searchData = await searchResponse.json();
+      console.log('searchData: ', searchData);
+      if (!searchData.files || searchData.files.length === 0) {
+        setRestoreModalContent("Data couldn't found");
+        return;
+      }
+      const latestFile = searchData.files[0];
+      const downloadResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`,
+        {
+          method: 'GET',
+          headers: {Authorization: `Bearer ${token}`},
+        },
+      );
+      if (!downloadResponse.ok) {
+        setRestoreModalContent("Error downloading file");
+        return;
+      }
+      const jsonData = await downloadResponse.json();
+      await setCartFromBackup(jsonData[1]);
+      setRestoreModalContent('Restore successful for user');
+    } catch (error) {
+      console.error('Error restoring backup:', error);
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
 
-    const RestoreDataFromDrive = async () => {
-          setRestoreLoading(true)
-            try {
-              const userId = agent.AgentID;
-              await GoogleSignin.signIn();
-              const currentUser = await GoogleSignin.getTokens();
-              const token = currentUser.accessToken;
-              // Search for the latest backup file in the root directory
-              const searchResponse = await fetch(
-                `https://www.googleapis.com/drive/v3/files?q=name contains 'backup_${userId}_'&orderBy=createdTime desc&fields=files(id, name)`,
-                {
-                  method: 'GET',
-                  headers: {Authorization: `Bearer ${token}`},
-                },
-              );
-              const searchData = await searchResponse.json();
-              console.log('searchData: ', searchData);
-              if (!searchData.files || searchData.files.length === 0) {
-                setRestoreModalContent("Data couldn't found");
-                return;
-              }
-              const latestFile = searchData.files[0];
-              // Download backup file
-              const downloadResponse = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`,
-                {
-                  method: 'GET',
-                  headers: {Authorization: `Bearer ${token}`},
-                },
-              );
-              if (!downloadResponse.ok) {
-                setRestoreModalContent("Error downloading file");
-                return;
-              }
-              const jsonData = await downloadResponse.json();
-              // Restore data to Firestore
-              await setCartFromBackup(jsonData[1]);
-              setRestoreModalContent('Restore successful for user');
-            } catch (error) {
-              console.error('Error restoring backup:', error);
-            }finally{
-              setRestoreLoading(false)
-            }
-          };
+  // Event Handlers
+  const handleErrorModalClose = () => {
+    setIsErrorVisible(false);
+    setModalError('');
+    setModalContent('');
+  };
+
+  const handleRestoreModalClose = () => {
+    setIsVisible(false);
+    setModalError('');
+    setModalContent('');
+    setRestoreVisible(false);
+    setTimeout(() => {
+      setAuthUser('Agent');
+    }, 500);
+  };
+
+  const handleSuccessModalProceed = () => {
+    setIsVisible(false);
+    setModalError('');
+    setModalContent('');
+    setRestoreVisible(true);
+    RestoreDataFromDrive();
+  };
+
+  // Effects
+  useEffect(() => {
+    fetchAdminLogo();
+  }, [fetchAdminLogo]);
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        '103001125235-rrvtlq3toiv24psed413e1d0h18e8m3s.apps.googleusercontent.com',
+      scopes: ['https://www.googleapis.com/auth/drive.file'],
+    });
+  }, []);
 
   return (
     <TouchableWithoutFeedback>
       <View style={styles.container}>
         <Header />
-
         <View style={styles.Innercontainer}>
           <Text style={styles.headerText}>AGENT LOGIN</Text>
           <View>
-            <View style={[styles.imageWrapper, logoLoading ? { justifyContent:'center' } : null ]}>
-              {
-                logoLoading
-                ? (
-                  <View>
-                   <ActivityIndicator 
-                   animating={true}
-                   color={MD2Colors.blue900}
-                   />
-                    </View>
-                )
-                : (
-                  <FastImage
+            <View style={[styles.imageWrapper, logoLoading && styles.imageWrapperLoading]}>
+              {logoLoading ? (
+                <View>
+                  <ActivityIndicator 
+                    animating={true}
+                    color={MD2Colors.blue900}
+                  />
+                </View>
+              ) : (
+                <FastImage
                   resizeMode='stretch'
                   style={styles.LogoImage}
                   source={
-                    logoUri=== null 
-                    ? require('../images/avatar.png') 
-                    : { uri:logoUri }
+                    logoUri === null 
+                      ? require('../images/avatar.png') 
+                      : { uri: logoUri }
                   }
-                  />
-                )
-              }
-                
+                />
+              )}
             </View>
           </View>
           <View>
@@ -207,7 +221,7 @@ const AgentLogin = () => {
               <MaterialCommunityIcons
                 name="key"
                 size={dimensions.md}
-                style={{marginLeft: dimensions.sm}}
+                style={styles.iconMargin}
               />
               <TextInput
                 placeholder="Enter your Agent ID"
@@ -217,7 +231,7 @@ const AgentLogin = () => {
                 editable={false}
               />
             </View>
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error && <Text style={styles.errorText}>{error}</Text>}
           </View>
 
           <View>
@@ -234,137 +248,97 @@ const AgentLogin = () => {
               </View>
             ))}
           </View>
-            <View>
-            <RNEUButton loading={loading} onPress={loading ? null : handleLogin}  ViewComponent={LinearGradient} linearGradientProps={{
-    colors: [colors.orange, colors.darkblue],
-    start: { x: 0, y: 0.5 },
-    end: { x: 1, y: 0.5 },
-  }} buttonStyle={{ width:dimensions.width/2,borderRadius:dimensions.sm,height:dimensions.sm * 3 }} titleStyle={{ fontFamily:fonts.bold }}>Login</RNEUButton>
-            </View>
+          <View>
+            <RNEUButton 
+              loading={loading} 
+              onPress={loading ? null : handleLogin}  
+              ViewComponent={LinearGradient} 
+              linearGradientProps={styles.buttonGradientProps}
+              buttonStyle={styles.loginButton}
+              titleStyle={styles.loginButtonTitle}
+            >
+              Login
+            </RNEUButton>
+          </View>
         </View>
 
         <Footer />
 
         <Modal
           visible={isErrorVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}>
-          <View style={{alignItems: 'center'}}>
+          contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
             <Foundation
               name="alert"
               color={colors.red}
               size={dimensions.width / 4}
             />
-            <Text style={{fontFamily: fonts.semibold}}>{modalError}</Text>
+            <Text style={styles.modalText}>{modalError}</Text>
             <Button
-              onPress={() => {
-                setIsErrorVisible(false);
-                setModalError('');
-                setModalContent('');
-              }}
-              style={{paddingHorizontal: dimensions.xl, margin: dimensions.md}}
+              onPress={handleErrorModalClose}
+              style={styles.modalButton}
               textColor={colors.pureWhite}
-              buttonColor={colors.darkblue}>
+              buttonColor={colors.darkblue}
+            >
               Try again
             </Button>
           </View>
         </Modal>
 
-
         <Modal
           visible={restoreModalVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}>
-          <View style={{alignItems: 'center'}}>
-            {
-              restoreLoading 
-              ? (<>
-                <ActivityIndicator 
-                size='large'
-                />
-                <Text style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>Restoring backup...</Text>
-                </>
-              )
-              : (
-            <>
-            {
-              restoreModalContent === 'Restore successful for user' 
-              ? (
-                <AntDesign 
-                name="checkcircle"
-                color="green"
-                size={dimensions.width / 4}
-                />
-              )
-              : (
-                <Foundation 
-                name="alert"
-                color={colors.red}
-                size={dimensions.width / 4}
-                />
-              )
-            }
-            <Text
-            style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-            {restoreModalContent}
-            </Text>
-            <Button
-              onPress={() => {
-                setIsVisible(false);
-                setModalError('');
-                setModalContent('');
-                setRestoreVisible(false)
-                setTimeout(() => {
-                    setAuthUser('Agent')
-                  },500)
-                }}
-                style={{paddingHorizontal: dimensions.xl, margin: dimensions.sm}}
-                textColor={colors.pureWhite}
-                buttonColor={colors.darkblue}>
-              Proceed to Homepage
-            </Button>
-                </>
-              )
-            }
+          contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {restoreLoading ? (
+              <>
+                <ActivityIndicator size='large' />
+                <Text style={styles.modalTextLoading}>Restoring backup...</Text>
+              </>
+            ) : (
+              <>
+                {restoreModalContent === 'Restore successful for user' ? (
+                  <AntDesign 
+                    name="checkcircle"
+                    color="green"
+                    size={dimensions.width / 4}
+                  />
+                ) : (
+                  <Foundation 
+                    name="alert"
+                    color={colors.red}
+                    size={dimensions.width / 4}
+                  />
+                )}
+                <Text style={styles.modalText}>{restoreModalContent}</Text>
+                <Button
+                  onPress={handleRestoreModalClose}
+                  style={styles.modalButton}
+                  textColor={colors.pureWhite}
+                  buttonColor={colors.darkblue}
+                >
+                  Proceed to Homepage
+                </Button>
+              </>
+            )}
           </View>
         </Modal>
+
         <Modal
           visible={isVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 3,
-            margin: dimensions.xl,
-            borderRadius: dimensions.sm,
-          }}>
-          <View style={{alignItems: 'center'}}>
+          contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
             <AntDesign
               name="checkcircle"
               color="green"
               size={dimensions.width / 4}
             />
-            <Text
-              style={{fontFamily: fonts.semibold, marginTop: dimensions.sm}}>
-              {modalContent}
-            </Text>
+            <Text style={styles.modalText}>{modalContent}</Text>
             <Button
-              onPress={restoreLoading ? null : () => {
-                setIsVisible(false);
-                setModalError('');
-                setModalContent('');
-                setRestoreVisible(true);
-                RestoreDataFromDrive();
-              }}
-              style={{paddingHorizontal: dimensions.xl, margin: dimensions.sm}}
+              onPress={restoreLoading ? null : handleSuccessModalProceed}
+              style={styles.modalButton}
               textColor={colors.pureWhite}
-              buttonColor={colors.darkblue}>
+              buttonColor={colors.darkblue}
+            >
               Proceed
             </Button>
           </View>
@@ -398,6 +372,9 @@ const styles = StyleSheet.create({
     borderRadius: dimensions.width / 8,
     overflow: 'hidden',
   },
+  imageWrapperLoading: {
+    justifyContent: 'center',
+  },
   inputContainer: {
     flexDirection: 'row',
     borderColor: colors.lightGray,
@@ -427,12 +404,18 @@ const styles = StyleSheet.create({
     color: colors.pureWhite,
     fontFamily: fonts.bold,
   },
-  gradient: {
+  buttonGradientProps: {
+    colors: [colors.orange, colors.darkblue],
+    start: { x: 0, y: 0.5 },
+    end: { x: 1, y: 0.5 },
+  },
+  loginButton: {
     width: dimensions.width / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: dimensions.md / 2,
     borderRadius: dimensions.sm,
+    height: dimensions.sm * 3,
+  },
+  loginButtonTitle: {
+    fontFamily: fonts.bold,
   },
   keypadContainer: {
     flexDirection: 'row',
@@ -474,5 +457,29 @@ const styles = StyleSheet.create({
   },
   uploadLogoText: {
     fontFamily: fonts.semibold,
+  },
+  iconMargin: {
+    marginLeft: dimensions.sm,
+  },
+  modalContainer: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 3,
+    margin: dimensions.xl,
+    borderRadius: dimensions.sm,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  modalText: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
+  },
+  modalTextLoading: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
+  },
+  modalButton: {
+    paddingHorizontal: dimensions.xl,
+    margin: dimensions.sm,
   },
 });

@@ -131,9 +131,15 @@ const AgentProductsListScreen = () => {
   item.ProductId.toString().toLowerCase().includes(searchQuery.toLowerCase().trim()
 )))
 
+  const handleOnReadCode = async (event) => {
+    const barcode = event?.nativeEvent?.codeStringValue || event?.codeStringValue;
+              if (barcode) {
+              findProductUsingBarcode(barcode);
+              setIsScanning(false);
+   }
+  }
   return (
     <View style={styles.container}>
-
       {/* Header Container */}
       <Appbar.Header style={styles.headerContainer}>
         <Appbar.BackAction
@@ -147,22 +153,15 @@ const AgentProductsListScreen = () => {
         />
       </Appbar.Header>
       <SearchBar
-      autoCapitalize='sentences'
-      placeholder='Search products'
-      value={searchQuery}
-      onChangeText={(text) => setSearchQuery(text)} 
-      containerStyle={{ backgroundColor:colors.halfWhite,borderColor:colors
-        .halfWhite
-       }}
-       inputContainerStyle={{ 
-        backgroundColor:colors.lightGray,
-        borderRadius:dimensions.xl,
-        padding:0,
-        height:dimensions.xl * 1.3,
-      }}
-      leftIconContainerStyle={{ marginLeft:dimensions.md }}
-      rightIconContainerStyle={{  marginRight:dimensions.sm }}
-      inputStyle={{ fontSize:dimensions.sm * 1.15 }}
+        autoCapitalize='sentences'
+        placeholder='Search products'
+        value={searchQuery}
+        onChangeText={(text) => setSearchQuery(text)} 
+        containerStyle={styles.searchBarContainer}
+        inputContainerStyle={styles.searchBarInputContainer}
+        leftIconContainerStyle={styles.searchBarLeftIcon}
+        rightIconContainerStyle={styles.searchBarRightIcon}
+        inputStyle={styles.searchBarInput}
       />
       {/* Tooltip for Barcode Scanner */}
       <View style={styles.BarCodeContainer}>
@@ -175,13 +174,12 @@ const AgentProductsListScreen = () => {
             />
           }
           color={colors.darkblue}
-          buttonStyle={{width: dimensions.xl * 2, height: dimensions.xl * 2}}
+          buttonStyle={styles.fabButton}
           radius={dimensions.xl}
           onPress={handleBarCodeScan}
         />
       </View>
-      {
-      isScanning && (
+      {isScanning && (
         <View style={styles.scannerContainer} pointerEvents="box-none">
           <Camera
             style={styles.camera}
@@ -190,13 +188,7 @@ const AgentProductsListScreen = () => {
             showFrame={true}
             laserColor="red"
             frameColor="white"
-            onReadCode={async (event) => {
-              const barcode = event?.nativeEvent?.codeStringValue || event?.codeStringValue;
-              if (barcode) {
-              findProductUsingBarcode(barcode);
-              setIsScanning(false);
-              }
-            }}
+            onReadCode={(event) => handleOnReadCode(event)}
           />
           <TouchableOpacity
             style={styles.cancelButton}
@@ -209,63 +201,66 @@ const AgentProductsListScreen = () => {
             />
           </TouchableOpacity> 
         </View>
-      )
-      } 
+      )}
       
-      {
-        loading 
-        ? (
-          <View style={{ justifyContent:'center',alignItems:'center',flex:1 }}>
+      {loading ? (
+        <View style={styles.loadingContainer}>
           <ActivityIndicator 
-          color={colors.darkblue}
-          size='large'
+            color={colors.darkblue}
+            size='large'
           />
-          </View>
-        )
-        : (
-          <FlatList
-      showsVerticalScrollIndicator={false}
-      data={searchQuery.trim() 
-        ? filteredProducts
-        : productListsData}
-      renderItem={({ item }) => {
-        console.log('item: ', item);
-        return (
-        <View style={{ marginHorizontal:dimensions.sm / 2 }}>
-        <Card contentStyle={{ backgroundColor:colors.pureWhite,paddingHorizontal:dimensions.md,borderRadius:dimensions.sm }} mode="elevated" style={styles.cardContainer} onPress={() => navigation.navigate('ProductDetailsScreen',{ item })}>
-        <View style={{flexDirection: 'row'}}>
-          <Card.Cover
-            source={{uri: item.ProductImage}}
-            style={styles.CardImage}
-            />
-          <View style={{justifyContent:'center'}}>
+        </View>
+      ) : (
+        <FlatList
+          showsVerticalScrollIndicator={false}
+          data={searchQuery.trim() ? filteredProducts : productListsData}
+          renderItem={({ item }) => {
+            console.log('item: ', item);
+            return (
+              <View style={styles.cardWrapper}>
+                <Card 
+                  contentStyle={styles.cardContent} 
+                  mode="elevated" 
+                  style={styles.cardContainer} 
+                  onPress={() => navigation.navigate('ProductDetailsScreen', { item })}
+                >
+                  <View style={styles.cardRow}>
+                    <Card.Cover
+                      source={{ uri: item.ProductImage }}
+                      style={styles.CardImage}
+                    />
+                    <View style={styles.cardContentContainer}>
                       <Card.Content>
-                        <View
-                          style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                          <View style={{ flexDirection:'row', justifyContent:'space-between',alignItems:'center',width:'85%'}}>
-                          <Text style={{ fontFamily:fonts.regular }}>Product Id: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductId}</Text></Text>
+                        <View style={styles.headerRow}>
+                          <View style={styles.productIdContainer}>
+                            <Text style={styles.regularText}>
+                              Product Id: <Text style={styles.semiboldText}>{item.ProductId}</Text>
+                            </Text>
                           </View>
                         </View>
-                        <Text style={{ fontFamily:fonts.regular }}>Product Name: <Text style={{ fontFamily:fonts.semibold }}> {item.ProductName}</Text></Text>
-                        <Text style={{ fontFamily:fonts.regular }}>Brand: <Text style={{ fontFamily:fonts.semibold }}> {item.BrandName}</Text></Text>
-                        <Text style={{ fontFamily:fonts.regular }}>Category: <Text style={{ fontFamily:fonts.semibold }}> {item.Category}</Text></Text>
+                        <Text style={styles.regularText}>
+                          Product Name: <Text style={styles.semiboldText}>{item.ProductName}</Text>
+                        </Text>
+                        <Text style={styles.regularText}>
+                          Brand: <Text style={styles.semiboldText}>{item.BrandName}</Text>
+                        </Text>
+                        <Text style={styles.regularText}>
+                          Category: <Text style={styles.semiboldText}>{item.Category}</Text>
+                        </Text>
                       </Card.Content>
                     </View>
-        </View>
-      </Card>
-      </View>
-        );
-      }}
-      ListEmptyComponent={(
-      <View style={{ flex:1,justifyContent:'center',alignItems:'center',height:dimensions.height/1.4}}>
-      <Text style={{ fontFamily:fonts.light,fontSize:dimensions.xl/2.25 }}>No product assignments have been made...</Text>
-      </View>
-        )}
-      />
-        )
-
-      }  
-      
+                  </View>
+                </Card>
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyListContainer}>
+              <Text style={styles.emptyListText}>No product assignments have been made...</Text>
+            </View>
+          }
+        />
+      )}  
     </View>
   );
 };
@@ -283,11 +278,30 @@ const styles = StyleSheet.create({
   headerText: {
     color: colors.pureWhite,
     fontFamily: fonts.bold,
-    fontSize: dimensions.sm * 2,
+    fontSize: dimensions.md,
   },
   container: {
     backgroundColor: colors.halfWhite,
     flex: 1,
+  },
+  searchBarContainer: {
+    backgroundColor: colors.halfWhite,
+    borderColor: colors.halfWhite,
+  },
+  searchBarInputContainer: {
+    backgroundColor: colors.lightGray,
+    borderRadius: dimensions.xl,
+    padding: 0,
+    height: dimensions.xl * 1.3,
+  },
+  searchBarLeftIcon: {
+    marginLeft: dimensions.md,
+  },
+  searchBarRightIcon: {
+    marginRight: dimensions.sm,
+  },
+  searchBarInput: {
+    fontSize: dimensions.sm * 1.15,
   },
   BarCodeContainer: {
     position: 'absolute',
@@ -295,41 +309,12 @@ const styles = StyleSheet.create({
     right: dimensions.md,
     zIndex: 10,
   },
-  BarCode: {
-    position: 'absolute',
-    bottom: dimensions.xl * 3.5,
-    right: dimensions.md,
-    zIndex: 10,
-  },
-  noShadow: {
-    elevation: 0,
-    shadowOpacity: 0,
-    shadowOffset: {width: 0, height: 0},
-    shadowRadius: 0,
-  },
-  CardImage: {
-    height: dimensions.width / 4,
-    width: dimensions.width / 4,
-    marginVertical: dimensions.sm,
-  },
-  cardContainer: {
-    marginVertical: dimensions.sm / 2,
-    justifyContent: 'center',
-  },
-  headerContainer: {
-    backgroundColor: colors.orange,
-    height: dimensions.xl * 2.25,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerText: {
-    color: colors.pureWhite,
-    fontFamily: fonts.bold,
-    fontSize: dimensions.md,
+  fabButton: {
+    width: dimensions.xl * 2,
+    height: dimensions.xl * 2,
   },
   scannerContainer: {
-    ...StyleSheet.absoluteFillObject, 
+    ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
     elevation: 1000,
   },
@@ -338,7 +323,61 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     position: 'absolute',
-    top:dimensions.xl * 1.75,
-    right:dimensions.md,
+    top: dimensions.xl * 1.75,
+    right: dimensions.md,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  cardWrapper: {
+    marginHorizontal: dimensions.sm / 2,
+  },
+  cardContent: {
+    backgroundColor: colors.pureWhite,
+    paddingHorizontal: dimensions.md,
+    borderRadius: dimensions.sm,
+  },
+  cardContainer: {
+    marginVertical: dimensions.sm / 2,
+    justifyContent: 'center',
+  },
+  cardRow: {
+    flexDirection: 'row',
+  },
+  CardImage: {
+    height: dimensions.width / 4,
+    width: dimensions.width / 4,
+    marginVertical: dimensions.sm,
+  },
+  cardContentContainer: {
+    justifyContent: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  productIdContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '85%',
+  },
+  regularText: {
+    fontFamily: fonts.regular,
+  },
+  semiboldText: {
+    fontFamily: fonts.semibold,
+  },
+  emptyListContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: dimensions.height / 1.4,
+  },
+  emptyListText: {
+    fontFamily: fonts.light,
+    fontSize: dimensions.xl / 2.25,
   },
 });

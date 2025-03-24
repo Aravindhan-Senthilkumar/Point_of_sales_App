@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,20 +8,30 @@ import {
 } from 'react-native';
 import { Appbar, Button, Modal, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import {colors} from '../constants/colors';
-import {dimensions} from '../constants/dimensions';
-import {fonts} from '../constants/fonts';
+import { colors } from '../constants/colors';
+import { dimensions } from '../constants/dimensions';
+import { fonts } from '../constants/fonts';
 import useCartStore from '../store/useCartStore';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 
 const CartScreen = () => {
   const navigation = useNavigation();
-  const { cart, removeFromCart, clearCart, setTotal, setCartItemUpdated, total,paymentConfirmation,setPaymentConfirmation } = useCartStore();
+  const {
+    cart,
+    removeFromCart,
+    clearCart,
+    setTotal,
+    setCartItemUpdated,
+    total,
+    paymentConfirmation,
+    setPaymentConfirmation,
+  } = useCartStore();
   console.log('cart: ', cart);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    if ((cart?.length > 0 && !loading) || paymentConfirmation) { 
+    if ((cart?.length > 0 && !loading) || paymentConfirmation) {
       setLoading(true);
       try {
         const totalAmount = cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
@@ -36,22 +46,22 @@ const CartScreen = () => {
     } else {
       setTotal(0);
     }
-  }, [cart, setCartItemUpdated, setTotal, loading,setPaymentConfirmation]);
+  }, [cart, setCartItemUpdated, setTotal, loading, setPaymentConfirmation]);
 
-  const renderItem = ({ item }) => (
+  const renderItem = useCallback(({ item }) => (
     <View style={styles.cartItem}>
       <Image source={{ uri: item.productImage }} style={styles.productImage} resizeMode="cover" />
       <View style={styles.itemDetails}>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, { fontFamily: fonts.semibold }]}>Product ID: </Text>
+          <Text style={[styles.itemName, styles.semiboldText]}>Product ID: </Text>
           {item.productId}
         </Text>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, { fontFamily: fonts.semibold }]}>Product Name: </Text>
+          <Text style={[styles.itemName, styles.semiboldText]}>Product Name: </Text>
           {item.productName}
         </Text>
         <Text style={styles.itemName}>
-          <Text style={[styles.itemName, { fontFamily: fonts.semibold }]}>Weight: </Text>
+          <Text style={[styles.itemName, styles.semiboldText]}>Weight: </Text>
           {item.weight} (₹ {item.price})
         </Text>
         <View style={styles.quantityContainer}>
@@ -80,17 +90,26 @@ const CartScreen = () => {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  ), [removeFromCart, updateQuantity]);
 
-  const updateQuantity = (productId, weight, newQuantity) => {
+  const updateQuantity = useCallback((productId, weight, newQuantity) => {
     const stock = cart.find(item => item.productId === productId && item.weight === weight)?.stocks || 0;
     const validatedQuantity = Math.max(0, Math.min(newQuantity, stock));
     useCartStore.getState().updateQuantity(productId, weight, validatedQuantity);
-  };
+  }, [cart]);
 
-  const handleProceed = () => {
-    navigation.navigate('PaymentScreen')
-  };
+  const handleProceed = useCallback(() => {
+    navigation.navigate('PaymentScreen');
+  }, [navigation]);
+
+  const handleClearCart = useCallback(() => {
+    clearCart();
+    setVisible(false);
+  }, [clearCart]);
+
+  const handleDismissModal = useCallback(() => {
+    setVisible(false);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -117,15 +136,12 @@ const CartScreen = () => {
         keyExtractor={(item) => `${item.productId}-${item.weight}`}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <Text style={styles.emptyCart}>Your cart is empty</Text>
-        }
+        ListEmptyComponent={<Text style={styles.emptyCart}>Your cart is empty</Text>}
       />
 
       {/* Bottom Section with Total and Proceed Button */}
-      {
-        cart.length !== 0 && (
-          <View style={styles.footer}>
+      {cart.length !== 0 && (
+        <View style={styles.footer}>
           <Text style={styles.totalText}>
             Total: {loading ? <Text>Loading...</Text> : `₹ ${total || 0}`}
           </Text>
@@ -138,10 +154,10 @@ const CartScreen = () => {
             Proceed to Payment
           </Button>
         </View>
-        )
-      }
+      )}
+
       <Modal
-        onDismiss={() => setVisible(false)}
+        onDismiss={handleDismissModal}
         visible={visible}
         contentContainerStyle={styles.modalContent}
       >
@@ -149,10 +165,7 @@ const CartScreen = () => {
           <Text style={styles.title}>Deleting all items from cart</Text>
           <View style={styles.buttonContainer}>
             <Button
-              onPress={() => {
-                clearCart();
-                setVisible(false);
-              }}
+              onPress={handleClearCart}
               mode="contained"
               buttonColor="green"
               style={styles.confirmButton}
@@ -160,7 +173,7 @@ const CartScreen = () => {
               Are you sure?
             </Button>
             <Button
-              onPress={() => setVisible(false)}
+              onPress={handleDismissModal}
               mode="contained"
               buttonColor={colors.red}
               style={styles.cancelButton}
@@ -192,7 +205,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: dimensions.sm,
-    paddingBottom: dimensions.xl * 3.5, // Ensure space for footer
+    paddingBottom: dimensions.xl * 3.5,
   },
   cartItem: {
     flexDirection: 'row',
@@ -224,6 +237,9 @@ const styles = StyleSheet.create({
     fontSize: dimensions.sm,
     color: colors.black,
     marginBottom: dimensions.sm / 2, // Space between lines
+  },
+  semiboldText: {
+    fontFamily: fonts.semibold,
   },
   quantityContainer: {
     flexDirection: 'row',

@@ -7,7 +7,7 @@ import {
   Platform,
   PermissionsAndroid,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import Footer from '../components/Footer';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
@@ -285,31 +285,34 @@ const AgentHomePage = () => {
 
   const [confirmationModal, setConfirmationModal] = useState(false);
 
+  const handleNavigationToScreen = useCallback((screenName) => {
+        navigation.navigate(screenName);
+    },[navigation]);
+
+  const handleToggleModal = useCallback(() => {
+    setConfirmationModal(prevState => !prevState);
+    }, [setConfirmationModal]);
+    
   return (
     <View style={styles.container}>
       <Header />
-
       <View style={styles.mainContainer}>
-        <Text style={styles.dashBoardText}>{agent.AgentName} - {agent.AgentID}</Text>
+        <Text style={styles.dashBoardText}>
+          {agent.AgentName} - {agent.AgentID}
+        </Text>
         <View style={styles.grid}>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('AgentProductsListScreen')}>
+            onPress={() => handleNavigationToScreen('AgentProductsListScreen')}>
             <FontAwesome6 name="store" size={28} color="black" />
             <Text style={styles.AdminDashboardText}>Products</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('CartScreen')}>
+            onPress={() => handleNavigationToScreen('CartScreen')}>
             <MaterialCommunityIcons name="cart" size={30} color="black" />
             {cart.length > 0 && (
-              <Badge
-                size={dimensions.sm}
-                style={{
-                  right: dimensions.sm * 4,
-                  top: dimensions.md / 2,
-                  position: 'absolute',
-                }}>
+              <Badge size={dimensions.sm} style={styles.cartBadge}>
                 {cart.length}
               </Badge>
             )}
@@ -317,7 +320,7 @@ const AgentHomePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('TodaySalesScreen')}>
+            onPress={() => handleNavigationToScreen('TodaySalesScreen')}>
             <MaterialCommunityIcons
               name="format-list-bulleted"
               size={30}
@@ -327,7 +330,7 @@ const AgentHomePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('ViewReports')}>
+            onPress={() => handleNavigationToScreen ('ViewReports')}>
             <MaterialCommunityIcons
               name="file-document"
               size={30}
@@ -336,94 +339,46 @@ const AgentHomePage = () => {
             <Text style={styles.AdminDashboardText}>View Reports</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.card, {width: '80%'}]}
-            onPress={() => setConfirmationModal(true)}>
+            style={[styles.card, styles.logoutCard]}
+            onPress={handleToggleModal}>
             <MaterialCommunityIcons name="logout" size={30} color="black" />
             <Text style={styles.AdminDashboardText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </View>
-
       <Footer />
       <Modal visible={loading}>
-        <View
-          style={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 5,
-            marginHorizontal: dimensions.xl*2,
-            borderRadius: dimensions.sm,
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingTop:dimensions.xl
-          }}>
+        <View style={styles.loadingModal}>
           <ActivityIndicator size={dimensions.xl} />
-          <Text
-            style={{
-              fontFamily: fonts.semibold,
-              marginVertical: dimensions.sm,
-              fontSize: dimensions.sm,
-            }}>
-            Backing Up.....
-          </Text>
+          <Text style={styles.loadingText}>Backing Up.....</Text>
         </View>
       </Modal>
       <Modal visible={backUpSuccessModal}>
-        <View
-          style={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 5,
-            marginHorizontal: dimensions.xl*2,
-            borderRadius: dimensions.sm,
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingTop:dimensions.xl
-          }}>
+        <View style={styles.successModal}>
           <AntDesign
             name="checkcircle"
             color="green"
             size={dimensions.width / 6}
           />
-          <Text
-            style={{
-              fontFamily: fonts.semibold,
-              marginVertical: dimensions.sm,
-              fontSize: dimensions.sm,
-            }}>
-            Backup Completed
-          </Text>
+          <Text style={styles.successText}>Backup Completed</Text>
         </View>
       </Modal>
       <Modal visible={confirmationModal}>
-        <View
-          style={{
-            backgroundColor: colors.pureWhite,
-            height: dimensions.height / 4,
-            marginHorizontal: dimensions.xl,
-            borderRadius: dimensions.sm,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-          <Text
-            style={{
-              fontFamily: fonts.semibold,
-              marginVertical: dimensions.md,
-              fontSize: dimensions.sm * 1.25,
-            }}>
-            Are you sure?
-          </Text>
-          <View style={{flexDirection: 'row', gap: dimensions.md}}>
+        <View style={styles.confirmationModal}>
+          <Text style={styles.confirmationText}>Are you sure?</Text>
+          <View style={styles.buttonContainer}>
             <Button
               icon="check"
               mode="contained"
               buttonColor="green"
-              onPress={() => handleLogout()}>
+              onPress={handleLogout}>
               Yes
             </Button>
             <Button
               icon="close"
               mode="contained"
               buttonColor="red"
-              onPress={() => setConfirmationModal(false)}>
+              onPress={handleToggleModal}>
               No
             </Button>
           </View>
@@ -445,9 +400,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: dimensions.sm,
   },
-  WelcomeText: {
+  dashBoardText: {
     fontFamily: fonts.medium,
-    fontSize: dimensions.md,
+    fontSize: dimensions.sm * 2,
   },
   grid: {
     width: '100%',
@@ -466,17 +421,60 @@ const styles = StyleSheet.create({
     borderColor: colors.lightGray,
     borderWidth: 1,
   },
-  logout: {
-    width: dimensions.width / 1.25,
+  logoutCard: {
+    width: '80%',
   },
   AdminDashboardText: {
     fontFamily: fonts.regular,
   },
-  dashBoardText:{
-    fontFamily: fonts.medium,
-    fontSize: dimensions.sm * 2,
+  cartBadge: {
+    right: dimensions.sm * 4,
+    top: dimensions.md / 2,
+    position: 'absolute',
   },
-  innerWelcomeText:{
-    fontFamily:fonts.light
-  }
+  loadingModal: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 5,
+    marginHorizontal: dimensions.xl * 2,
+    borderRadius: dimensions.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: dimensions.xl,
+  },
+  loadingText: {
+    fontFamily: fonts.semibold,
+    marginVertical: dimensions.sm,
+    fontSize: dimensions.sm,
+  },
+  successModal: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 5,
+    marginHorizontal: dimensions.xl * 2,
+    borderRadius: dimensions.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: dimensions.xl,
+  },
+  successText: {
+    fontFamily: fonts.semibold,
+    marginVertical: dimensions.sm,
+    fontSize: dimensions.sm,
+  },
+  confirmationModal: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 5,
+    marginHorizontal: dimensions.xl * 2,
+    borderRadius: dimensions.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmationText: {
+    fontFamily: fonts.semibold,
+    marginVertical: dimensions.md,
+    fontSize: dimensions.sm * 1.25,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: dimensions.md,
+  },
 });

@@ -7,7 +7,6 @@ import ProductDetailsScreen from '../screens/ProductDetailsScreen';
 import AgentProductsListScreen from '../screens/AgentProductsListScreen';
 import CartScreen from '../screens/CartScreen';
 import PaymentScreen from '../screens/PaymentScreen';
-import InvoiceGenerationScreen from '../screens/InvoiceGenerationScreen';
 import FileViewer from 'react-native-file-viewer';
 import notifee, {EventType} from '@notifee/react-native';
 import ViewReports from '../screens/ViewReports';
@@ -60,7 +59,6 @@ const AgentStack = () => {
         <Stack.Screen name='AgentProductsListScreen' component={AgentProductsListScreen}/>
         <Stack.Screen name='PaymentScreen' component={PaymentScreen}/>
         <Stack.Screen name='CartScreen' component={CartScreen}/>
-        <Stack.Screen name='InvoiceGenerationScreen' component={InvoiceGenerationScreen}/>
         <Stack.Screen name='ViewReports' component={ViewReports}/>
         <Stack.Screen name='TodaySalesScreen' component={TodaySalesScreen}/>
         </Stack.Navigator>

@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import React, {memo, useCallback, useEffect, useState} from 'react';
-import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
+import { useNavigation, useRoute} from '@react-navigation/native';
 import {
   ActivityIndicator,
   Appbar,
@@ -25,50 +25,28 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import useAssigningStore from '../store/useAssigningStore';
 import Dialog from "react-native-dialog";
 
-const ProductItem = memo(({item, onPress}) => (
-  <Pressable style={{marginHorizontal: dimensions.sm / 2}} onPress={onPress}>
+const ProductItem = memo(({ item, onPress }) => (
+  <Pressable style={styles.pressableContainer} onPress={onPress}>
     <Card
-      contentStyle={{
-        backgroundColor: colors.pureWhite,
-        paddingHorizontal: dimensions.sm,
-        borderRadius: dimensions.sm,
-      }}
+      contentStyle={styles.cardContent}
       mode="elevated"
-      style={styles.cardContainer}>
-      <View style={{flexDirection: 'row'}}>
-        <Card.Cover
-          source={{uri: item.ProductImage}}
-          style={styles.CardImage}
-        />
-        <View style={{justifyContent: 'center'}}>
+      style={styles.cardContainer}
+    >
+      <View style={styles.cardRow}>
+        <Card.Cover source={{ uri: item.ProductImage }} style={styles.CardImage} />
+        <View style={styles.cardContentContainer}>
           <Card.Content>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-              }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  width: '85%',
-                }}>
-                <Text style={{fontFamily: fonts.regular}}>
+            <View style={styles.headerRow}>
+              <View style={styles.productIdContainer}>
+                <Text style={styles.regularText}>
                   Product Id:{' '}
-                  <Text style={{fontFamily: fonts.semibold}}>
-                    {' '}
-                    {item.ProductId}
-                  </Text>
+                  <Text style={styles.semiboldText}>{item.ProductId}</Text>
                 </Text>
               </View>
             </View>
-            <Text style={{fontFamily: fonts.regular}}>
-             Product Name:{' '}
-              <Text style={{fontFamily: fonts.semibold}}>
-                {' '}
-                {item.ProductName}
-              </Text>
+            <Text style={styles.regularText}>
+              Product Name:{' '}
+              <Text style={styles.semiboldText}>{item.ProductName}</Text>
             </Text>
           </Card.Content>
         </View>
@@ -148,7 +126,6 @@ const AssignViewScreen = () => {
   const [addedStocks, setAddedStocks] = useState([]);
   const [errorInput, setErrorInput] = useState(false);
 
-  
   const handleInputChange = (index, text, item) => {
     const numericValue = text.replace(/[^0-9]/g, '');
     const stockLimit = item.stocks || 0;
@@ -177,8 +154,6 @@ const AssignViewScreen = () => {
       }
     });
   };
-
-
 
   const handleConfirmEntry = useCallback(() => {
     setStockEntryLoader(true);
@@ -226,7 +201,7 @@ const AssignViewScreen = () => {
             ...prev,
             {
               ProductId: singleProduct.ProductId,
-              ProductName: singleProduct.ProductName || "Unnamed",
+              ProductName: singleProduct.ProductName,
               Stocks: addedStocks.map(stock => ({ ...stock })),
               BarcodeImageUri: singleProduct.BarcodeImageUri,
               Barcode: singleProduct.Barcode,
@@ -263,12 +238,12 @@ const AssignViewScreen = () => {
 
   // Expanded States for ListItem
   const [expandedItems, setExpandedItems] = useState({});
-  const toggleAccordion = (productId) => {
+  const toggleAccordion = useCallback((productId) => {
   setExpandedItems((prev) => ({
     ...prev,
     [productId]: !prev[productId],
   }));
-};
+},[item]);
 
 // Clearing stocks and totals from zustand store
 const handleClearStocks = () => {
@@ -286,7 +261,6 @@ const handleClearStocks = () => {
   }
 
   const handleDeleteCheckedItems = () => {
-
      // Extract checked ProductId values
      const checkedProductIds = Object.entries(checkedItems)
      .filter(([_, isChecked]) => isChecked)
@@ -411,6 +385,23 @@ const handleSuccess = () => {
   },800)
 }
 
+const handleEmptyDialogVisible = () => {
+  setEmptyDialogVisible(!emptyDialogVisible)
+}
+const handleSelectedDialogVisible = () => {
+  setSelectedDialogVisible(!selectedDialogVisible)
+}
+const handleDeleteSelectedFunction = () => {
+  handleDeleteCheckedItems();
+  setSelectedDialogVisible(false);
+}
+const handleAllSelectedStock = () => {
+  handleClearStocks();
+  setAllStocksDeleteDialog(false);
+}
+const handleDeletedAllDialogVisible = () => {
+  setAllStocksDeleteDialog(!allStocksDeleteDialog)
+}
   return (
     <View style={styles.container}>
       <Appbar.Header style={styles.headerContainer}>
@@ -425,18 +416,17 @@ const handleSuccess = () => {
         />
       </Appbar.Header>
       <View
-        showsVerticalScrollIndicator={false}
         style={{marginTop: dimensions.sm}}>
         <View style={styles.section}>
-          <View style={{flexDirection: 'row'}}>
+          <View style={styles.dateRow}>
             <Text style={styles.label}>Date of Assigning: </Text>
             <Text style={styles.label2}>{formattedDate}</Text>
           </View>
-          <View style={{flexDirection: 'row'}}>
+          <View style={styles.agentNameRow}>
             <Text style={styles.label}>Agent Name: </Text>
             <Text style={styles.label2}>{item.AgentName}</Text>
           </View>
-          <View style={{flexDirection: 'row'}}>
+          <View style={styles.agentIdRow}>
             <Text style={styles.label}>AgentID: </Text>
             <Text style={styles.label2}>{item.AgentID}</Text>
           </View>
@@ -448,27 +438,14 @@ const handleSuccess = () => {
             value={searchQuery}
             onChangeText={text => setSearchQuery(text)}
             placeholder="Search Products"
-            containerStyle={{
-              backgroundColor: colors.pureWhite,
-              borderColor: colors.pureWhite,
-            }}
-            inputContainerStyle={{
-              backgroundColor: colors.lightGray,
-              borderRadius: dimensions.xl,
-              padding: 0,
-              height: dimensions.xl,
-            }}
-            leftIconContainerStyle={{marginLeft: dimensions.md}}
-            rightIconContainerStyle={{marginRight: dimensions.sm}}
-            inputStyle={{fontSize: dimensions.sm }}
+            containerStyle={styles.searchBarContainer}
+            inputContainerStyle={styles.searchBarInputContainer}
+            leftIconContainerStyle={styles.searchBarLeftIcon}
+            rightIconContainerStyle={styles.searchBarRightIcon}
+            inputStyle={styles.searchBarInput}
           />
           {fetchProductsLoader ? (
-            <View
-              style={{
-                height: dimensions.height / 5,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+            <View style={styles.loaderContainer}>
               <ActivityIndicator
                 size="large"
                 animating={true}
@@ -478,16 +455,13 @@ const handleSuccess = () => {
           ) : (
             <FlatList
               showsVerticalScrollIndicator={false}
-              style={[
-                {height: dimensions.height / 5},
-                filteredProducts.length === 0 && {height: dimensions.xl},
-              ]}
+              style={[styles.productList, filteredProducts.length === 0 && styles.emptyProductList]}
               data={searchQuery.trim() ? filteredProducts : fetchedProducts}
               keyExtractor={keyExtractor}
               renderItem={renderItem}
               ListEmptyComponent={
                 <View>
-                  <Text style={{textAlign: 'center'}}>No Products Found</Text>
+                  <Text style={styles.noProductsText}>No Products Found</Text>
                 </View>
               }
             />
@@ -495,86 +469,86 @@ const handleSuccess = () => {
         </View>
 
         <View style={styles.section}>
-          <View style={{ flexDirection:'row',justifyContent:'space-between',marginBottom:dimensions.sm/2 }}>
-          <Text style={styles.label}>Stocks Summary</Text>
-          {
-            stockEntry.length !== 0
-            ?
-            (Object.values(checkedItems).some(value => value)
-            ? (
-            <TouchableOpacity onPress={() => setSelectedDialogVisible(true)}>
-            <Text style={{ color:'red',fontFamily:fonts.semibold }}>Clear selected</Text>
-          </TouchableOpacity>
-            ) 
-            : (
-          <TouchableOpacity onPress={() => setAllStocksDeleteDialog(true)}>
-          <Text style={{ color:'red',fontFamily:fonts.semibold }}>Clear all</Text>
-          </TouchableOpacity>
-            )
-          )
-          : null
-          }
-          
+          <View style={styles.stocksSummaryHeader}>
+            <Text style={styles.label}>Stocks Summary</Text>
+            {stockEntry.length !== 0 ? (
+              Object.values(checkedItems).some(value => value) ? (
+                <TouchableOpacity onPress={() => setSelectedDialogVisible(true)}>
+                  <Text style={styles.clearSelectedText}>Clear selected</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => setAllStocksDeleteDialog(true)}>
+                  <Text style={styles.clearAllText}>Clear all</Text>
+                </TouchableOpacity>
+              )
+            ) : null}
           </View>
           <FlatList
-          keyExtractor={(item) => item.ProductId}
-          showsVerticalScrollIndicator={false}
-          style={[{ height:dimensions.height/4.75 }, stockEntry.length === 0 && { height:dimensions.md}]}
-          data={stockEntry}
-          renderItem={({ item }) => {
-            console.log('item: ', item);
-            const itemStockArray = item.Stocks || []
-            const totalStocks = itemStockArray.reduce((prev,curr) => prev + (curr.assignedValue),0)
-            const totalPrice = itemStockArray.reduce((prev,curr) => prev + (curr.assignedValue * curr.price),0);
-            return (
-              <ListItem.Accordion topDivider isExpanded={expandedItems[item.ProductId] || false} 
-              onPress={() => toggleAccordion(item.ProductId)}
-          content={
-              <>
-              <ListItem.Content style={{ marginVertical: dimensions.sm / 6, justifyContent: 'space-between'}}>
-                  <View style={{ flexDirection:'row',alignItems:'center',gap:dimensions.sm/2 }}>
-                  <ListItem.CheckBox onPress={()  => handleCheckedAccordion(item.ProductId)} checked={checkedItems[item.ProductId] || false}/>
-                  <View>
-                  <Text style={styles.stockTextStyle}>Product Id:<Text style={styles.stockInnerTextStyle}> {item.ProductId}</Text></Text>
-                  <Text style={styles.stockTextStyle}>Product Name:<Text style={styles.stockInnerTextStyle}> {item.ProductName}</Text></Text>
-                  <Text style={styles.stockTextStyle}>Assigned Stocks:<Text style={styles.stockInnerTextStyle}> {totalStocks} Nos</Text></Text>
-                  <Text style={styles.stockTextStyle}>Total Price:<Text style={styles.stockInnerTextStyle}> ₹ {totalPrice}</Text></Text>
-                  </View>
-                  </View>
-              </ListItem.Content>
-              </>
-            }
-            containerStyle={{ padding:dimensions.sm/2 }}
-            >
-                <ListItem topDivider key={item.id}>
-                <View style={{ flex:1 }}>
-                <View style={{ flexDirection:'row',flex:1,borderColor:colors.lightGray,borderTopWidth:1,borderBottomWidth:1,paddingVertical:dimensions.sm/2,paddingHorizontal:dimensions.sm/4,justifyContent:'space-between' }}>
-                  <Text style={styles.stockSummaryHeader}>Weight</Text>
-                  <Text style={styles.stockSummaryHeader}>Assigned Stocks</Text>
-                  <Text style={styles.stockSummaryHeader}>Price</Text>
-                </View>
-                {
-                  itemStockArray.map((item,index) => {
-                    return (
-                      <View
-                      key={index}
-                      style={{ flexDirection:'row',justifyContent:'space-between',flex:1,paddingVertical:dimensions.sm/2,paddingHorizontal:dimensions.sm/4 }}>
-                  <Text style={styles.stockSummaryLabel}>{item.weight}(₹{item.price})</Text>
-                  <Text style={styles.stockSummaryLabel}>{item.assignedValue}</Text>
-                  <Text style={styles.stockSummaryLabel}>₹ {item.assignedValue * item.price}</Text>
-                </View>
-                    )})
-                }
-                </View>
-              </ListItem>
-          </ListItem.Accordion>
-            )
-          }}
-          ListEmptyComponent={(
-              <Text style={{ textAlign:'center',fontFamily:fonts.regular }}>No Stocks are Added</Text>
-        )}
+            keyExtractor={(item) => item.ProductId}
+            showsVerticalScrollIndicator={false}
+            style={[styles.stocksList, stockEntry.length === 0 && styles.emptyStocksList]}
+            data={stockEntry}
+            renderItem={({ item }) => {
+              console.log('item: ', item);
+              const itemStockArray = item.Stocks || [];
+              const totalStocks = itemStockArray.reduce((prev, curr) => prev + (curr.assignedValue), 0);
+              const totalPrice = itemStockArray.reduce((prev, curr) => prev + (curr.assignedValue * curr.price), 0);
+              return (
+                <ListItem.Accordion
+                  topDivider
+                  isExpanded={expandedItems[item.ProductId] || false}
+                  onPress={() => toggleAccordion(item.ProductId)}
+                  content={
+                    <>
+                      <ListItem.Content style={styles.accordionContent}>
+                        <View style={styles.accordionRow}>
+                          <ListItem.CheckBox
+                            onPress={() => handleCheckedAccordion(item.ProductId)}
+                            checked={checkedItems[item.ProductId] || false}
+                          />
+                          <View>
+                            <Text style={styles.stockTextStyle}>
+                              Product Id: <Text style={styles.stockInnerTextStyle}>{item.ProductId}</Text>
+                            </Text>
+                            <Text style={styles.stockTextStyle}>
+                              Product Name: <Text style={styles.stockInnerTextStyle}>{item.ProductName}</Text>
+                            </Text>
+                            <Text style={styles.stockTextStyle}>
+                              Assigned Stocks: <Text style={styles.stockInnerTextStyle}>{totalStocks} Nos</Text>
+                            </Text>
+                            <Text style={styles.stockTextStyle}>
+                              Total Price: <Text style={styles.stockInnerTextStyle}>₹ {totalPrice}</Text>
+                            </Text>
+                          </View>
+                        </View>
+                      </ListItem.Content>
+                    </>
+                  }
+                  containerStyle={styles.accordionContainer}
+                >
+                  <ListItem topDivider key={item.id}>
+                    <View style={styles.accordionDetails}>
+                      <View style={styles.stockSummaryHeaderRow}>
+                        <Text style={styles.stockSummaryHeader}>Weight</Text>
+                        <Text style={styles.stockSummaryHeader}>Assigned Stocks</Text>
+                        <Text style={styles.stockSummaryHeader}>Price</Text>
+                      </View>
+                      {itemStockArray.map((item, index) => (
+                        <View key={index} style={styles.stockSummaryRow}>
+                          <Text style={styles.stockSummaryLabel}>{item.weight}(₹{item.price})</Text>
+                          <Text style={styles.stockSummaryLabel}>{item.assignedValue}</Text>
+                          <Text style={styles.stockSummaryLabel}>₹ {item.assignedValue * item.price}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </ListItem>
+                </ListItem.Accordion>
+              );
+            }}
+            ListEmptyComponent={<Text style={styles.noStocksText}>No Stocks are Added</Text>}
           />
-      </View>
+        </View>
+
       </View>
 
 
@@ -596,91 +570,45 @@ const handleSuccess = () => {
         </Button>
       </View>
 
-
-      {/* Stock Entry Modal    */}
+      {/* Stock Entry Modal */}
       {singleProduct && (
         <Modal
           onDismiss={handleDismiss}
           visible={isVisible}
-          contentContainerStyle={{
-            backgroundColor: colors.halfWhite,
-            borderRadius: dimensions.sm,
-            justifyContent: 'center',
-            marginHorizontal: dimensions.sm,
-            paddingVertical: dimensions.sm,
-          }}>
+          contentContainerStyle={styles.stockModalContainer}
+        >
           <AntDesign
             onPress={handleDismiss}
             name="close"
             size={dimensions.sm * 2}
-            style={{alignSelf: 'flex-end', marginRight: dimensions.sm}}
+            style={styles.closeIcon}
           />
-          <Text
-            style={{
-              fontFamily: fonts.bold,
-              fontSize: dimensions.md,
-              textAlign: 'center',
-            }}>
-            Stock Entry
-          </Text>
-
+          <Text style={styles.stockModalTitle}>Stock Entry</Text>
           <Divider />
-
-          <View
-            style={{marginLeft: dimensions.sm, marginVertical: dimensions.sm}}>
-            <View style={{flexDirection: 'row', gap: dimensions.sm / 2}}>
-              <Text
-                style={{fontFamily: fonts.regular, fontSize: dimensions.sm}}>
-                Product ID :
-              </Text>
-              <Text style={{fontFamily: fonts.bold, fontSize: dimensions.sm}}>
-                {singleProduct.ProductId}
-              </Text>
+          <View style={styles.stockModalDetails}>
+            <View style={styles.productIdRow}>
+              <Text style={styles.productIdLabel}>Product ID :</Text>
+              <Text style={styles.productIdValue}>{singleProduct.ProductId}</Text>
             </View>
-            <View style={{flexDirection: 'row', gap: dimensions.sm / 2}}>
-              <Text
-                style={{fontFamily: fonts.regular, fontSize: dimensions.sm}}>
-                Product Name :
-              </Text>
-              <Text style={{fontFamily: fonts.bold, fontSize: dimensions.sm}}>
-                {singleProduct.ProductName}
-              </Text>
+            <View style={styles.productNameRow}>
+              <Text style={styles.productNameLabel}>Product Name :</Text>
+              <Text style={styles.productNameValue}>{singleProduct.ProductName}</Text>
             </View>
           </View>
-
           <Divider />
-
-          <View style={{marginTop: dimensions.sm, marginLeft: dimensions.sm}}>
-            <Text
-              style={{
-                fontFamily: fonts.bold,
-                fontSize: dimensions.xl/2,
-                marginBottom: dimensions.sm / 2,
-                textAlign:'center'
-              }}>
-              Stocks
-            </Text>
+          <View style={styles.stocksSection}>
+            <Text style={styles.stocksTitle}>Stocks</Text>
           </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              paddingVertical: dimensions.sm / 2,
-              borderBottomWidth: 1,
-              borderColor: colors.lightGray,
-              backgroundColor: colors.halfWhite,
-              borderTopWidth: 1,
-            }}>
+          <View style={styles.tableHeaderRow}>
             <Text style={styles.tableHeader}>Weight</Text>
             <Text style={styles.tableHeader}>Available</Text>
             <Text style={styles.tableHeader}>Stock Assign</Text>
           </View>
           {singleProduct?.Stocks?.map((item, index) => {
-           const assignedValue = addedStocks[index]?.assignedValue || 0; // Default to "0" if undefined
-           const stockLimit = item.stocks || 0; // Ensure stock is not undefined
-           const cappedValue = Math.min(assignedValue, stockLimit).toString(); // Prevent exceeding stock
-            console.log("item",item)
+            const assignedValue = addedStocks[index]?.assignedValue || 0;
+            const stockLimit = item.stocks || 0;
+            const cappedValue = Math.min(assignedValue, stockLimit).toString();
+            console.log("item", item);
             const incrementStock = (index, item) => {
               setErrorInput(false);
               setAddedStocks((prev) => {
@@ -725,127 +653,84 @@ const handleSuccess = () => {
                       : entry
                   );
                 }
-                return prev; // No need to add if decrementing from nothing
+                return prev;
               });
             };
         
             return (
               <View key={index} style={styles.tableRow}>
                 <Text style={styles.tableCell}>
-                  <Text style={{fontWeight: '700'}}>{item.weight}</Text>(₹{' '}
-                  {item.price})
+                  <Text style={styles.tableCellBold}>{item.weight}</Text>(₹ {item.price})
                 </Text>
                 <Text style={styles.tableCell}>{item.stocks}</Text>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: dimensions.sm / 2,
-                    marginRight: dimensions.sm / 2,
-                  }}>
-                  <TouchableOpacity onPress={() => incrementStock(index,item)}>
+                <View style={styles.stockInputContainer}>
+                  <TouchableOpacity onPress={() => incrementStock(index, item)}>
                     <AntDesign name="plus" size={dimensions.md} />
                   </TouchableOpacity>
-                  <View
-                    style={{
-                      borderWidth: 1,
-                      borderColor: colors.lightGray,
-                      width: dimensions.md * 3,
-                      height: dimensions.md * 2,
-                      padding: 0,
-                    }}>
+                  <View style={styles.stockInputWrapper}>
                     <TextInput
-                      style={{alignSelf: 'center'}}
+                      style={styles.stockInput}
                       key={index}
-                      onChangeText={text =>
-                        handleInputChange(index, text, item)
-                      }
+                      onChangeText={text => handleInputChange(index, text, item)}
                       keyboardType="number-pad"
                       maxLength={item.stocks.toString().length}
                       value={cappedValue}
                     />
                   </View>
-                  <TouchableOpacity onPress={() => decrementStock(index,item)}>
+                  <TouchableOpacity onPress={() => decrementStock(index, item)}>
                     <AntDesign name="minus" size={dimensions.md} />
                   </TouchableOpacity>
                 </View>
               </View>
             );
           })}
-          {
-            errorInput && 
-            (
-              <Text style={{ textAlign:'center',color:'red',fontFamily:fonts.semibold,marginTop:dimensions.sm/2 }}>Enter valid Stock NOs</Text>
-            )
-          }
+          {errorInput && (
+            <Text style={styles.errorText}>Enter valid Stock NOs</Text>
+          )}
           <Button
-            onPress={() => handleConfirmEntry()}
+            onPress={handleConfirmEntry}
             loading={stockEntryLoader}
             mode="contained"
             buttonColor={colors.darkblue}
-            style={{marginHorizontal: dimensions.md, marginTop: dimensions.sm/2}}>
+            style={styles.confirmButton}
+          >
             {stockEntryLoader ? 'Confirming....' : 'Confirm Entry'}
           </Button>
         </Modal>
       )}
 
       {/* Empty Alert Dialog */}
-      <Dialog.Container visible={emptyDialogVisible} onBackdropPress={()=> setEmptyDialogVisible(false)}>
-      <Dialog.Title style={{ color:'red',fontFamily:fonts.bold }}>
-        Stocklist are empty 
-      </Dialog.Title>
-      <Dialog.Description style={{ fontFamily:fonts.regular }}>
-        Add stocks
-      </Dialog.Description>
-      <Dialog.Button label='Proceed' onPress={()=> setEmptyDialogVisible(false)}>
-        Proceed
-      </Dialog.Button>
+      <Dialog.Container visible={emptyDialogVisible} onBackdropPress={handleEmptyDialogVisible}>
+        <Dialog.Title style={styles.emptyDialogTitle}>Stocklists are empty</Dialog.Title>
+        <Dialog.Description style={styles.dialogDescription}>Add stocks</Dialog.Description>
+        <Dialog.Button label="Proceed" onPress={handleEmptyDialogVisible} />
       </Dialog.Container>
 
       {/* Selected Delete Dialog */}
-      <Dialog.Container visible={selectedDialogVisible} onBackdropPress={()=> setSelectedDialogVisible(false)}>
-      <Dialog.Title style={{ fontFamily:fonts.bold }}>
-      Clear all selected stocks 
-      </Dialog.Title>
-      <Dialog.Description style={{ fontFamily:fonts.light }}>Are you sure?</Dialog.Description>
-      <Dialog.Button label='Accept' onPress={()=> {
-        handleDeleteCheckedItems()
-        setSelectedDialogVisible(false)
-        }} />
-      <Dialog.Button label='Cancel' onPress={()=> setSelectedDialogVisible(false)} />
+      <Dialog.Container visible={selectedDialogVisible} onBackdropPress={handleSelectedDialogVisible}>
+        <Dialog.Title style={styles.dialogTitle}>Clear all selected stocks</Dialog.Title>
+        <Dialog.Description style={styles.dialogDescriptionLight}>Are you sure?</Dialog.Description>
+        <Dialog.Button label="Accept" onPress={handleDeleteSelectedFunction} />
+        <Dialog.Button label="Cancel" onPress={handleSelectedDialogVisible} />
       </Dialog.Container>
 
       {/* All stocks delete dialog */}
-      <Dialog.Container visible={allStocksDeleteDialog} onBackdropPress={()=> setAllStocksDeleteDialog(false)}>
-      <Dialog.Title style={{ fontFamily:fonts.bold }}>
-      Clear all stocks 
-      </Dialog.Title>
-      <Dialog.Description style={{ fontFamily:fonts.light }}>Are you sure?</Dialog.Description>
-      <Dialog.Button label='Accept' onPress={()=> {
-        handleClearStocks()
-        setAllStocksDeleteDialog(false)
-        }} />
-      <Dialog.Button label='Cancel' onPress={()=> setAllStocksDeleteDialog(false)} />
+      <Dialog.Container visible={allStocksDeleteDialog} onBackdropPress={handleDeletedAllDialogVisible}>
+        <Dialog.Title style={styles.dialogTitle}>Clear all stocks</Dialog.Title>
+        <Dialog.Description style={styles.dialogDescriptionLight}>Are you sure?</Dialog.Description>
+        <Dialog.Button label="Accept" onPress={handleAllSelectedStock} />
+        <Dialog.Button label="Cancel" onPress={handleDeletedAllDialogVisible} />
       </Dialog.Container>
-              <Modal
-              visible={isSuccessModalVisible}
-              contentContainerStyle={styles.modalContent}>
-              <View style={styles.modalContent}>
-                <AntDesign
-                  name="checkcircle"
-                  size={dimensions.width / 4}
-                  color="green"
-                />
-                <Text
-                  style={[styles.modalTitle, {marginVertical: dimensions.sm / 2}]}>
-                  Assign Successful!
-                </Text>
-                <Text style={[styles.modalText, {marginBottom: dimensions.sm / 2}]}>
-                  Assigning stocks to agent <Text style={{ fontFamily:fonts.bold }}>{item.AgentID}</Text> has been completed successfully.
-                </Text>
-              </View>
-            </Modal>
+
+      <Modal visible={isSuccessModalVisible} contentContainerStyle={styles.modalContent}>
+        <View style={styles.modalContent}>
+          <AntDesign name="checkcircle" size={dimensions.width / 4} color="green" />
+          <Text style={[styles.modalTitle, styles.modalTitleMargin]}>Assign Successful!</Text>
+          <Text style={[styles.modalText, styles.modalTextMargin]}>
+            Assigning stocks to agent <Text style={styles.modalTextBold}>{item.AgentID}</Text> has been completed successfully.
+          </Text>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -853,6 +738,212 @@ const handleSuccess = () => {
 export default AssignViewScreen;
 
 const styles = StyleSheet.create({
+  stockModalContainer: {
+    backgroundColor: colors.halfWhite,
+    borderRadius: dimensions.sm,
+    justifyContent: 'center',
+    marginHorizontal: dimensions.sm,
+    paddingVertical: dimensions.sm,
+  },
+  closeIcon: {
+    alignSelf: 'flex-end',
+    marginRight: dimensions.sm,
+  },
+  stockModalTitle: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
+    textAlign: 'center',
+  },
+  stockModalDetails: {
+    marginLeft: dimensions.sm,
+    marginVertical: dimensions.sm,
+  },
+  productIdRow: {
+    flexDirection: 'row',
+    gap: dimensions.sm / 2,
+  },
+  productIdLabel: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+  },
+  productIdValue: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.sm,
+  },
+  productNameRow: {
+    flexDirection: 'row',
+    gap: dimensions.sm / 2,
+  },
+  productNameLabel: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+  },
+  productNameValue: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.sm,
+  },
+  stocksSection: {
+    marginTop: dimensions.sm,
+    marginLeft: dimensions.sm,
+  },
+  stocksTitle: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.xl / 2,
+    marginBottom: dimensions.sm / 2,
+    textAlign: 'center',
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: dimensions.sm / 2,
+    borderBottomWidth: 1,
+    borderColor: colors.lightGray,
+    backgroundColor: colors.halfWhite,
+    borderTopWidth: 1,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: dimensions.sm / 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+    alignItems: 'center',
+  },
+  tableCell: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: dimensions.sm,
+  },
+  tableCellBold: {
+    fontWeight: '700',
+  },
+  stockInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: dimensions.sm / 2,
+    marginRight: dimensions.sm / 2,
+  },
+  stockInputWrapper: {
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    width: dimensions.md * 3,
+    height: dimensions.md * 2,
+    padding: 0,
+  },
+  stockInput: {
+    alignSelf: 'center',
+  },
+  stocksSummaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: dimensions.sm / 2,
+  },
+  clearSelectedText: {
+    color: 'red',
+    fontFamily: fonts.semibold,
+  },
+  clearAllText: {
+    color: 'red',
+    fontFamily: fonts.semibold,
+  },
+  stocksList: {
+    height: dimensions.height / 4.75,
+  },
+  emptyStocksList: {
+    height: dimensions.md,
+  },
+  accordionContent: {
+    marginVertical: dimensions.sm / 6,
+    justifyContent: 'space-between',
+  },
+  accordionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: dimensions.sm / 2,
+  },
+  accordionContainer: {
+    padding: dimensions.sm / 2,
+  },
+  accordionDetails: {
+    flex: 1,
+  },
+  stockSummaryHeaderRow: {
+    flexDirection: 'row',
+    flex: 1,
+    borderColor: colors.lightGray,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: dimensions.sm / 2,
+    paddingHorizontal: dimensions.sm / 4,
+    justifyContent: 'space-between',
+  },
+  stockSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flex: 1,
+    paddingVertical: dimensions.sm / 2,
+    paddingHorizontal: dimensions.sm / 4,
+  },
+  stockTextStyle: {
+    fontFamily: fonts.regular,
+  },
+  stockInnerTextStyle: {
+    fontFamily: fonts.bold,
+  },
+  stockSummaryHeader: {
+    fontFamily: fonts.semibold,
+    flex: 1,
+    textAlign: 'center',
+  },
+  stockSummaryLabel: {
+    fontFamily: fonts.regular,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: dimensions.sm,
+  },
+  loaderContainer: {
+    height: dimensions.height / 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productList: {
+    height: dimensions.height / 5,
+  },
+  emptyProductList: {
+    height: dimensions.xl,
+  },
+  noProductsText: {
+    textAlign: 'center',
+  },
+  searchBarContainer: {
+    backgroundColor: colors.pureWhite,
+    borderColor: colors.pureWhite,
+  },
+  searchBarInputContainer: {
+    backgroundColor: colors.lightGray,
+    borderRadius: dimensions.xl,
+    padding: 0,
+    height: dimensions.xl,
+  },
+  searchBarLeftIcon: {
+    marginLeft: dimensions.md,
+  },
+  searchBarRightIcon: {
+    marginRight: dimensions.sm,
+  },
+  searchBarInput: {
+    fontSize: dimensions.sm,
+  },
+  dateRow: {
+    flexDirection: 'row',
+  },
+  agentNameRow: {
+    flexDirection: 'row',
+  },
+  agentIdRow: {
+    flexDirection: 'row',
+  },
   headerContainer: {
     backgroundColor: colors.orange,
     height: dimensions.xl * 2.25,
@@ -971,4 +1062,98 @@ const styles = StyleSheet.create({
     color: colors.black,
     textAlign: 'center',
   },
+  pressableContainer: {
+    marginHorizontal: dimensions.sm / 2,
+  },
+  cardContent: {
+    backgroundColor: colors.pureWhite,
+    paddingHorizontal: dimensions.sm,
+    borderRadius: dimensions.sm,
+  },
+  cardContainer: {
+    marginVertical: dimensions.sm / 3,
+    justifyContent: 'center',
+  },
+  cardRow: {
+    flexDirection: 'row',
+  },
+  CardImage: {
+    height: dimensions.xl * 1.5,
+    width: dimensions.xl * 1.5,
+    marginVertical: dimensions.sm,
+  },
+  cardContentContainer: {
+    justifyContent: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  productIdContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '85%',
+  },
+  regularText: {
+    fontFamily: fonts.regular,
+  },
+  semiboldText: {
+    fontFamily: fonts.semibold,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: 'red',
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm / 2,
+  },
+  confirmButton: {
+    marginHorizontal: dimensions.md,
+    marginTop: dimensions.sm / 2,
+  },
+  emptyDialogTitle: {
+    color: 'red',
+    fontFamily: fonts.bold,
+  },
+  dialogDescription: {
+    fontFamily: fonts.regular,
+  },
+  dialogTitle: {
+    fontFamily: fonts.bold,
+  },
+  dialogDescriptionLight: {
+    fontFamily: fonts.light,
+  },
+  modalContent: {
+    backgroundColor: colors.pureWhite,
+    borderRadius: dimensions.sm,
+    paddingVertical: dimensions.sm,
+    alignItems: 'center',
+    margin: dimensions.md,
+  },
+  modalTitle: {
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
+    color: colors.black,
+  },
+  modalTitleMargin: {
+    marginVertical: dimensions.sm / 2,
+  },
+  modalText: {
+    fontFamily: fonts.regular,
+    fontSize: dimensions.sm,
+    color: colors.black,
+    textAlign: 'center',
+  },
+  modalTextMargin: {
+    marginBottom: dimensions.sm / 2,
+  },
+  modalTextBold: {
+    fontFamily: fonts.bold,
+  },
+  noStocksText: {
+    textAlign: 'center',
+    fontFamily: fonts.regular,
+  },
+
 });

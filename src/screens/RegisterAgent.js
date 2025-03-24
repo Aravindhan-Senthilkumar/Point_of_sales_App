@@ -24,7 +24,6 @@ import {Overlay} from '@rneui/themed';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 
 const RegisterAgent = () => {
-
   const navigation = useNavigation();
 
   //State Updates
@@ -44,7 +43,7 @@ const RegisterAgent = () => {
   const [mobileNo, setMobileNo] = useState('');
   const [address, setAddress] = useState('');
   const [registerError, setRegisterError] = useState('');
-  
+
   //Register Success Function
   const successfulRegistration = () => {
     setVisible(true);
@@ -74,7 +73,6 @@ const RegisterAgent = () => {
     setErrors(prev => ({...prev, agentId: ''}));
     setAgentId(uid);
   };
-
 
   //Register Agent
   const handleRegisterAgent = async () => {
@@ -128,10 +126,35 @@ const RegisterAgent = () => {
     }
   };
 
+  const onChangeAgentName = text => {
+    setAgentName(text);
+    setErrors(prev => ({...prev, agentName: ''}));
+  };
+
+  const onChangeDesignation = text => {
+    setDesignation(text);
+    setErrors(prev => ({...prev, designation: ''}));
+  };
+
+  const onChangeMobileNo = (text) => {
+    setMobileNo(text);
+    setErrors(prev => ({...prev, mobileNo: ''}));
+  };
+
+  const onChangeAddress = (text) => {
+    setAddress(text);
+    setErrors(prev => ({...prev, address: ''}));
+  }
+  const toggleOpen = () => {
+    setOpen(!open)
+  }
+  const handleConfirmDate = (date) => {
+      setOpen(false);
+      setDOJ(date);
+  }
   return (
     <>
       <View style={styles.container}>
-
         <Appbar.Header style={styles.headerContainer}>
           <Appbar.BackAction
             onPress={() => navigation.goBack()}
@@ -145,14 +168,14 @@ const RegisterAgent = () => {
         </Appbar.Header>
 
         <ScrollView>
-          <View style={[styles.Innercontainer]}>
+          <View style={[styles.innerContainer]}>
             <View>
               <Text style={styles.tagName}>Username</Text>
               <View style={styles.inputContainer}>
                 <MaterialCommunityIcons
                   name="account"
                   size={dimensions.md}
-                  style={{marginLeft: dimensions.sm}}
+                  style={styles.icon}
                 />
                 <TextInput
                   placeholder="Enter agent username"
@@ -160,10 +183,7 @@ const RegisterAgent = () => {
                   numberOfLines={1}
                   style={styles.textInputStyle}
                   value={agentName}
-                  onChangeText={text => {
-                    setAgentName(text);
-                    setErrors(prev => ({...prev, agentName: ''}));
-                  }}
+                  onChangeText={text => onChangeAgentName(text)}
                 />
               </View>
               {errors.agentName ? (
@@ -176,7 +196,7 @@ const RegisterAgent = () => {
                 <MaterialIcons
                   name="work"
                   size={dimensions.md}
-                  style={{marginLeft: dimensions.sm}}
+                  style={styles.icon}
                 />
                 <TextInput
                   placeholder="Enter agent designation"
@@ -184,10 +204,7 @@ const RegisterAgent = () => {
                   numberOfLines={1}
                   style={styles.textInputStyle}
                   value={designation}
-                  onChangeText={text => {
-                    setDesignation(text);
-                    setErrors(prev => ({...prev, designation: ''}));
-                  }}
+                  onChangeText={text => onChangeDesignation(text)}
                 />
               </View>
               {errors.designation ? (
@@ -197,15 +214,12 @@ const RegisterAgent = () => {
             <View>
               <Text style={styles.tagName}>Date of Joining</Text>
               <Pressable
-                style={[
-                  styles.inputContainer,
-                  {gap: dimensions.sm / 2, height: dimensions.xl * 1.5},
-                ]}
-                onPress={() => setOpen(true)}>
+                style={[styles.inputContainer, styles.dateInputContainer]}
+                onPress={toggleOpen}>
                 <MaterialCommunityIcons
                   name="calendar"
                   size={dimensions.md}
-                  style={{marginLeft: dimensions.sm}}
+                  style={styles.icon}
                 />
                 <Text style={styles.dateText}>{DOJ.toDateString()}</Text>
               </Pressable>
@@ -215,13 +229,8 @@ const RegisterAgent = () => {
               open={open}
               date={DOJ}
               mode="date"
-              onConfirm={selectedDate => {
-                setOpen(false);
-                setDOJ(selectedDate);
-              }}
-              onCancel={() => {
-                setOpen(false);
-              }}
+              onConfirm={selectedDate => handleConfirmDate(selectedDate)}
+              onCancel={toggleOpen}
             />
             <View>
               <Text style={styles.tagName}>Mobile Number</Text>
@@ -229,7 +238,7 @@ const RegisterAgent = () => {
                 <Ionicons
                   name="call"
                   size={dimensions.md}
-                  style={{marginLeft: dimensions.sm}}
+                  style={styles.icon}
                 />
                 <TextInput
                   placeholder="Enter agent mobile number"
@@ -237,10 +246,7 @@ const RegisterAgent = () => {
                   autoCorrect={false}
                   style={styles.textInputStyle}
                   value={mobileNo}
-                  onChangeText={text => {
-                    setMobileNo(text);
-                    setErrors(prev => ({...prev, mobileNo: ''}));
-                  }}
+                  onChangeText={text => onChangeMobileNo(text)}
                   keyboardType="number-pad"
                   inputMode="numeric"
                   maxLength={10}
@@ -256,30 +262,16 @@ const RegisterAgent = () => {
                 <Ionicons
                   name="location-sharp"
                   size={dimensions.md}
-                  style={{
-                    marginLeft: dimensions.sm,
-                    alignSelf: 'flex-start',
-                    marginTop: dimensions.md / 2,
-                  }}
+                  style={styles.addressIcon}
                 />
                 <TextInput
                   placeholder="Enter agent address"
                   multiline={true}
                   autoCorrect={false}
                   numberOfLines={5}
-                  style={[
-                    styles.textInputStyle,
-                    {
-                      height: dimensions.width / 3.5,
-                      textAlignVertical: 'top',
-                      paddingTop: dimensions.sm / 1.5,
-                    },
-                  ]}
+                  style={[styles.textInputStyle, styles.addressInput]}
                   value={address}
-                  onChangeText={text => {
-                    setAddress(text);
-                    setErrors(prev => ({...prev, address: ''}));
-                  }}
+                  onChangeText={text => onChangeAddress(text)}
                 />
               </View>
               {errors.address ? (
@@ -293,11 +285,7 @@ const RegisterAgent = () => {
                   <Ionicons
                     name="person-add"
                     size={dimensions.sm * 1.25}
-                    style={{
-                      marginLeft: dimensions.sm,
-                      alignSelf: 'flex-start',
-                      marginTop: dimensions.md / 2,
-                    }}
+                    style={styles.generateIcon}
                   />
                   <TextInput
                     placeholder="Agent ID"
@@ -306,15 +294,13 @@ const RegisterAgent = () => {
                     maxLength={6}
                     value={agentId}
                     editable={false}
-                    onChangeText={uid => {
-                      setAgentId(uid);
-                    }}
+                    onChangeText={uid => setAgentId(uid)}
                   />
                 </View>
                 <Button
                   onPress={generateAgentId}
                   textColor={colors.grayText}
-                  labelStyle={{fontFamily: fonts.bold}}>
+                  labelStyle={styles.generateButtonLabel}>
                   Generate
                 </Button>
               </View>
@@ -322,14 +308,14 @@ const RegisterAgent = () => {
                 <Text style={styles.errorText}>{errors.agentId}</Text>
               ) : null}
               {registerError ? (
-                <Text style={[styles.errorText, {fontSize: dimensions.sm}]}>
+                <Text style={[styles.errorText, styles.registerErrorText]}>
                   {registerError}
                 </Text>
               ) : null}
             </View>
             <TouchableOpacity
-              style={styles.LoginContainer}
-              onPress={() => handleRegisterAgent()}>
+              style={styles.loginContainer}
+              onPress={handleRegisterAgent}>
               <LinearGradient
                 colors={[colors.orange, colors.darkblue]}
                 start={{x: 1, y: 0}}
@@ -346,22 +332,12 @@ const RegisterAgent = () => {
             name="checkcircle"
             color="green"
             size={dimensions.width / 4}
-            style={{alignSelf: 'center', paddingTop: dimensions.md}}
+            style={styles.overlayIcon}
           />
-          <Text
-            style={{
-              fontSize: dimensions.md / 1.25,
-              textAlign: 'center',
-              paddingHorizontal: dimensions.xl,
-              paddingVertical: dimensions.md,
-              fontFamily: fonts.semibold,
-            }}>
-            Agent Successfully Registered
-          </Text>
+          <Text style={styles.overlayText}>Agent Successfully Registered</Text>
         </Overlay>
 
         <Footer />
-        
       </View>
     </>
   );
@@ -373,13 +349,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  Innercontainer: {
+  innerContainer: {
     flex: 1,
     backgroundColor: colors.halfWhite,
     alignItems: 'center',
     gap: dimensions.sm / 2,
     paddingTop: dimensions.sm / 4,
-    paddingBottom: dimensions.height / 10,
+    paddingBottom: dimensions.height / 5,
+  },
+  headerContainer: {
+    backgroundColor: colors.orange,
+    height: dimensions.xl * 2.25,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerText: {
+    color: colors.pureWhite,
+    fontFamily: fonts.bold,
+    fontSize: dimensions.md,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -391,6 +379,10 @@ const styles = StyleSheet.create({
     gap: dimensions.sm / 2,
     width: dimensions.width / 1.25,
   },
+  dateInputContainer: {
+    gap: dimensions.sm / 2,
+    height: dimensions.xl * 1.5,
+  },
   textInputStyle: {
     width: '80%',
     fontFamily: fonts.regular,
@@ -398,28 +390,23 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     height: dimensions.md * 2,
   },
-  headerText: {
-    fontFamily: fonts.bold,
-    fontSize: dimensions.sm * 1.5,
-    marginTop: dimensions.sm,
+  addressInput: {
+    height: dimensions.width / 3.5,
+    textAlignVertical: 'top',
+    paddingTop: dimensions.sm / 1.5,
   },
-  LoginContainer: {
-    width: dimensions.width / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    marginTop: dimensions.sm,
+  icon: {
+    marginLeft: dimensions.sm,
   },
-  loginText: {
-    color: colors.pureWhite,
-    fontFamily: fonts.bold,
+  addressIcon: {
+    marginLeft: dimensions.sm,
+    alignSelf: 'flex-start',
+    marginTop: dimensions.md / 2,
   },
-  gradient: {
-    width: dimensions.width / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: dimensions.md / 2,
-    borderRadius: dimensions.sm,
+  generateIcon: {
+    marginLeft: dimensions.sm,
+    alignSelf: 'flex-start',
+    marginTop: dimensions.md / 2,
   },
   tagName: {
     fontFamily: fonts.semibold,
@@ -431,6 +418,14 @@ const styles = StyleSheet.create({
     fontSize: dimensions.sm,
     color: colors.darkGray,
     marginLeft: dimensions.sm / 4,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: dimensions.sm * 0.8,
+    marginLeft: dimensions.sm / 2,
+  },
+  registerErrorText: {
+    fontSize: dimensions.sm,
   },
   generateContainer: {
     flexDirection: 'row',
@@ -450,21 +445,36 @@ const styles = StyleSheet.create({
     width: dimensions.width / 1.9,
     justifyContent: 'center',
   },
-  errorText: {
-    color: 'red',
-    fontSize: dimensions.sm * 0.8,
-    marginLeft: dimensions.sm / 2,
+  generateButtonLabel: {
+    fontFamily: fonts.bold,
   },
-  headerContainer: {
-    backgroundColor: colors.orange,
-    height: dimensions.xl * 2.25,
-    width: '100%',
+  loginContainer: {
+    width: dimensions.width / 2,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+    marginTop: dimensions.sm,
   },
-  headerText: {
+  gradient: {
+    width: dimensions.width / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: dimensions.md / 2,
+    borderRadius: dimensions.sm,
+  },
+  loginText: {
     color: colors.pureWhite,
     fontFamily: fonts.bold,
-    fontSize: dimensions.md,
+  },
+  overlayIcon: {
+    alignSelf: 'center',
+    paddingTop: dimensions.md,
+  },
+  overlayText: {
+    fontSize: dimensions.md / 1.25,
+    textAlign: 'center',
+    paddingHorizontal: dimensions.xl,
+    paddingVertical: dimensions.md,
+    fontFamily: fonts.semibold,
   },
 });
