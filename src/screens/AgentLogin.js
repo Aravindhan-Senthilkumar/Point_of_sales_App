@@ -26,6 +26,7 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import useCartStore from '../store/useCartStore';
 import FastImage from 'react-native-fast-image';
 import { Button as RNEUButton } from '@rneui/themed'; 
+import useAdminStore from '../store/useAdminStore';
 
 const AgentLogin = () => {
   // KeyPad Arrays
@@ -42,13 +43,14 @@ const AgentLogin = () => {
   const [modalError, setModalError] = useState('');
   const [isErrorVisible, setIsErrorVisible] = useState(false);
   const [logoLoading, setLogoLoading] = useState(false);
-  const [logoUri, setLogoUri] = useState();
 
   // Zustand Store
-  const { setAgentData, agent, setAdminLogoUri } = useAgentStore();
+  const { setAgentData, agent} = useAgentStore();
   const { setCartFromBackup, cart } = useCartStore();
   const { setAuthUser } = useAuthStore();
-
+  const { adminLogoUri } = useAdminStore();
+  
+  console.log('adminLogoUri: ', adminLogoUri);
   console.log('cart: ', cart);
 
   // KeyPad Pressing Function
@@ -63,18 +65,18 @@ const AgentLogin = () => {
     }
   };
 
-  const fetchAdminLogo = useCallback(async () => {
-    setLogoLoading(true);
-    try {
-      const adminLogo = await getFirestore().collection('admin').doc('admin').get();
-      setLogoUri(adminLogo.exists ? adminLogo.data().AdminLogoUri : null);
-      setAdminLogoUri(adminLogo.data().AdminLogoUri);
-    } catch (error) {
-      setLogoUri(null);
-    } finally {
-      setLogoLoading(false);
-    }
-  }, []);
+  // const fetchAdminLogo = useCallback(async () => {
+  //   setLogoLoading(true);
+  //   try {
+  //     const adminLogo = await getFirestore().collection('admin').doc('admin').get();
+  //     setLogoUri(adminLogo.exists ? adminLogo.data().AdminLogoUri : null);
+  //     setAdminLogoUri(adminLogo.data().AdminLogoUri);
+  //   } catch (error) {
+  //     setLogoUri(null);
+  //   } finally {
+  //     setLogoLoading(false);
+  //   }
+  // }, []);
 
   // Handle Agent Login
   const handleLogin = async () => {
@@ -175,10 +177,10 @@ const AgentLogin = () => {
     RestoreDataFromDrive();
   };
 
-  // Effects
-  useEffect(() => {
-    fetchAdminLogo();
-  }, [fetchAdminLogo]);
+  // // Effects
+  // useEffect(() => {
+  //   fetchAdminLogo();
+  // }, [fetchAdminLogo]);
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -208,9 +210,9 @@ const AgentLogin = () => {
                   resizeMode='stretch'
                   style={styles.LogoImage}
                   source={
-                    logoUri === null 
+                    adminLogoUri === null || adminLogoUri === undefined
                       ? require('../images/avatar.png') 
-                      : { uri: logoUri }
+                      : { uri: adminLogoUri }
                   }
                 />
               )}

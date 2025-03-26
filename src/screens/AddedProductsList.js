@@ -9,7 +9,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
-import {Appbar, Card, Text} from 'react-native-paper';
+import {Appbar, Card, Modal, Text} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {FAB} from '@rneui/base';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,7 +21,7 @@ import {getFirestore} from '@react-native-firebase/firestore';
 import useProductStore from '../store/useProductStore';
 import {ActivityIndicator} from 'react-native-paper';
 import {SearchBar} from '@rneui/themed';
-
+import Foundation from 'react-native-vector-icons/Foundation';
 
 const AddedProductsList = () => {
   const navigation = useNavigation();
@@ -89,7 +89,13 @@ const AddedProductsList = () => {
     setIsScanning(false);
     console.log('Barcode scanning cancelled');
   };
-
+  const [isVisible, setIsVisible] = useState(false);
+    const productNotFoundModal = () => {
+      setIsVisible(true);
+      setTimeout(() => {
+      setIsVisible(false);
+      },800)
+    }
   const findProductByBarcode = async barcode => {
     try {
       const querySnapShot = await getFirestore()
@@ -102,7 +108,7 @@ const AddedProductsList = () => {
           navigation.navigate('ProductUpdatingScreen', {item: productData});
         });
       } else {
-        setResult(`No product found with barcode: ${barcodeToSearch}`);
+        productNotFoundModal();
       }
     } catch (error) {
       console.log('Error in internal server while searching a product', error);
@@ -271,6 +277,21 @@ const AddedProductsList = () => {
           }}
         />
       )}
+      <Modal
+      visible={isVisible}
+      contentContainerStyle={styles.modalContainer}
+    >
+      <View style={styles.modalContent}>
+        <Foundation
+          name="alert"
+          color={colors.red}
+          size={dimensions.width / 4}
+        />
+        <Text style={styles.modalText}>
+          Product not found
+        </Text>
+      </View>
+    </Modal>
     </View>
   );
 };
@@ -390,5 +411,18 @@ const styles = StyleSheet.create({
   },
   semiboldText: {
     fontFamily: fonts.semibold,
+  },
+  modalContainer: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 4,
+    margin: dimensions.xl,
+    borderRadius: dimensions.sm,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  modalText: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
   },
 });

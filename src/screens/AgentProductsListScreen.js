@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {colors} from '../constants/colors';
 import {dimensions} from '../constants/dimensions';
 import {fonts} from '../constants/fonts';
-import {Appbar, Button, Card, Text} from 'react-native-paper';
+import {Appbar, Button, Card, Modal, Text} from 'react-native-paper';
 import { useNavigation} from '@react-navigation/native';
 import {FAB} from '@rneui/base';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -15,6 +15,7 @@ import useProductStore from '../store/useProductStore';
 import { ActivityIndicator } from 'react-native-paper';
 import { SearchBar } from '@rneui/themed';
 import useAgentStore from '../store/useAgentStore';
+import Foundation from 'react-native-vector-icons/Foundation';
 
 const AgentProductsListScreen = () => {
   const navigation = useNavigation();
@@ -94,13 +95,20 @@ const AgentProductsListScreen = () => {
     setIsScanning(false);
     console.log('Barcode scanning cancelled');
   };
-
+  const [isVisible, setIsVisible] = useState(false);
+  const productNotFoundModal = () => {
+    setIsVisible(true);
+    setTimeout(() => {
+    setIsVisible(false);
+    },800)
+  }
   const findProductUsingBarcode = async (barcode) => {
     try {
       const querySnapShot = await (await getFirestore().collection('agent-products').doc(agent.AgentID).get()).data();
       
       if (!querySnapShot) {
         console.log("No products found for this agent.");
+        productNotFoundModal();
         return;
       }
   
@@ -116,6 +124,7 @@ const AgentProductsListScreen = () => {
         navigation.navigate('ProductDetailsScreen',{ item:foundProduct })
       } else {
         console.log('No product found with this barcode.');
+        productNotFoundModal();
         return null;
       }
     } catch (error) {
@@ -138,6 +147,7 @@ const AgentProductsListScreen = () => {
               setIsScanning(false);
    }
   }
+  
   return (
     <View style={styles.container}>
       {/* Header Container */}
@@ -261,6 +271,21 @@ const AgentProductsListScreen = () => {
           }
         />
       )}  
+      <Modal
+        visible={isVisible}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <View style={styles.modalContent}>
+          <Foundation
+            name="alert"
+            color={colors.red}
+            size={dimensions.width / 4}
+          />
+          <Text style={styles.modalText}>
+            Product not found
+          </Text>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -379,5 +404,18 @@ const styles = StyleSheet.create({
   emptyListText: {
     fontFamily: fonts.light,
     fontSize: dimensions.xl / 2.25,
+  },
+  modalContainer: {
+    backgroundColor: colors.pureWhite,
+    height: dimensions.height / 4,
+    margin: dimensions.xl,
+    borderRadius: dimensions.sm,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  modalText: {
+    fontFamily: fonts.semibold,
+    marginTop: dimensions.sm,
   },
 });

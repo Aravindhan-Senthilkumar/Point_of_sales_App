@@ -1,6 +1,7 @@
 import {
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -124,12 +125,13 @@ const AssignViewScreen = () => {
   //Stock Entry Modal
   const [stockEntryLoader, setStockEntryLoader] = useState(false);
   const [addedStocks, setAddedStocks] = useState([]);
+  console.log('addedStocks: ', addedStocks);
   const [errorInput, setErrorInput] = useState(false);
 
-  const handleInputChange = (index, text, item) => {
+  const handleInputChange = (text, item) => {
     const numericValue = text.replace(/[^0-9]/g, '');
     const stockLimit = item.stocks || 0;
-    const cappedValue = Math.min(Number(numericValue), stockLimit);
+    const cappedValue = Math.min(Number(numericValue) || 0, stockLimit);
     setErrorInput(false);
   
     setAddedStocks((prev) => {
@@ -157,40 +159,91 @@ const AssignViewScreen = () => {
 
   const handleConfirmEntry = useCallback(() => {
     setStockEntryLoader(true);
-    if (addedStocks.length === 0) {
+    const isValid = addedStocks.find((item) => item.assignedValue === 0);
+    if (addedStocks.length === 0 ) {
       console.log("Invalid entry: No stocks added");
       setErrorInput(true);
       setStockEntryLoader(false);
       return;
     }
-  
+    if(isValid){
+      console.log("Invalid entry: No stocks added");
+      setErrorInput(true);
+      setStockEntryLoader(false);
+      return;
+    }
+
     try {
-      const today = new Date();
-      const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      // Validate against available stocks in singleProduct.Stocks
+      const stockLimits = singleProduct.Stocks.reduce((acc, stock) => {
+        acc[stock.weight] = stock.stocks; // Map weight to available stocks
+        return acc;
+      }, {});
   
-      const totalStocks = addedStocks.reduce((sum, curr) => sum + (curr.assignedValue || 0), 0);
-      const totalPrice = addedStocks.reduce((sum, curr) => sum + ((curr.assignedValue || 0) * (curr.price || 0)), 0);
+      const isValid = addedStocks.every((stock) => {
+        const availableStocks = stockLimits[stock.weight] || 0;
+        const existingStock = stockEntry.find(
+          (entry) => entry.ProductId === singleProduct.ProductId
+        )?.Stocks.find((s) => s.weight === stock.weight);
+        const currentAssigned = existingStock ? existingStock.assignedValue || 0 : 0;
+        const newTotalAssigned = currentAssigned + (stock.assignedValue || 0);
+        return newTotalAssigned <= availableStocks;
+      });
+  
+      if (!isValid) {
+        console.log("Invalid entry: Assigned stocks exceed available stocks");
+        setErrorInput(true);
+        setStockEntryLoader(false);
+        return;
+      }
+  
+      const today = new Date();
+      const formattedDate = `${today
+        .getDate()
+        .toString()
+        .padStart(2, "0")}/${(today.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}/${today.getFullYear()}`;
+  
+      const totalStocks = addedStocks.reduce(
+        (sum, curr) => sum + (curr.assignedValue || 0),
+        0
+      );
+      const totalPrice = addedStocks.reduce(
+        (sum, curr) => sum + (curr.assignedValue || 0) * (curr.price || 0),
+        0
+      );
   
       setTotalStockNos(totalStocks);
       setTotalStockPrice(totalPrice);
   
       setStockEntry((prev) => {
-        const existingStockIndex = prev.findIndex(item => item.ProductId === singleProduct.ProductId);
+        const existingStockIndex = prev.findIndex(
+          (item) => item.ProductId === singleProduct.ProductId
+        );
         if (existingStockIndex !== -1) {
           return prev.map((item, index) =>
             index === existingStockIndex
               ? {
                   ...item,
-                  Stocks: item.Stocks.map(stockItem => {
-                    const newStock = addedStocks.find(s => s.weight === stockItem.weight);
+                  Stocks: item.Stocks.map((stockItem) => {
+                    const newStock = addedStocks.find(
+                      (s) => s.weight === stockItem.weight
+                    );
                     return newStock
                       ? {
                           ...stockItem,
-                          assignedValue: (stockItem.assignedValue || 0) + newStock.assignedValue,
-                          totalStocks: (stockItem.totalStocks || 0) + newStock.assignedValue,
+                          assignedValue:
+                            (stockItem.assignedValue || 0) + newStock.assignedValue,
+                          totalStocks:
+                            (stockItem.totalStocks || 0) + newStock.assignedValue,
                         }
                       : stockItem;
-                  }).concat(addedStocks.filter(s => !item.Stocks.some(stockItem => stockItem.weight === s.weight))),
+                  }).concat(
+                    addedStocks.filter(
+                      (s) => !item.Stocks.some((stockItem) => stockItem.weight === s.weight)
+                    )
+                  ),
                   TotalStocks: (item.TotalStocks || 0) + totalStocks,
                   TotalPrice: (item.TotalPrice || 0) + totalPrice,
                 }
@@ -202,7 +255,7 @@ const AssignViewScreen = () => {
             {
               ProductId: singleProduct.ProductId,
               ProductName: singleProduct.ProductName,
-              Stocks: addedStocks.map(stock => ({ ...stock })),
+              Stocks: addedStocks.map((stock) => ({ ...stock })),
               BarcodeImageUri: singleProduct.BarcodeImageUri,
               Barcode: singleProduct.Barcode,
               Category: singleProduct.Category,
@@ -226,13 +279,23 @@ const AssignViewScreen = () => {
       console.error("Error while confirming entry:", error);
       setStockEntryLoader(false);
     }
-  }, [singleProduct, addedStocks, setTotalStockNos, setTotalStockPrice]);
+  }, [
+    singleProduct,
+    addedStocks,
+    setTotalStockNos,
+    setTotalStockPrice,
+    stockEntry,
+    setErrorInput,
+    setStockEntryLoader,
+    setIsVisible,
+    setAddedStocks,
+  ]);
 
 
   // Stock Modal Dismiss Function
   const handleDismiss = () => {
-    setErrorInput(false)
-    setAddedStocks([])  
+    setErrorInput(false);
+    setAddedStocks([]); 
     setIsVisible(!isVisible)
   }
 
@@ -402,7 +465,7 @@ const handleAllSelectedStock = () => {
 const handleDeletedAllDialogVisible = () => {
   setAllStocksDeleteDialog(!allStocksDeleteDialog)
 }
-  return (
+return (
     <View style={styles.container}>
       <Appbar.Header style={styles.headerContainer}>
         <Appbar.BackAction
@@ -416,7 +479,7 @@ const handleDeletedAllDialogVisible = () => {
         />
       </Appbar.Header>
       <View
-        style={{marginTop: dimensions.sm}}>
+        style={styles.container2}>
         <View style={styles.section}>
           <View style={styles.dateRow}>
             <Text style={styles.label}>Date of Assigning: </Text>
@@ -473,11 +536,11 @@ const handleDeletedAllDialogVisible = () => {
             <Text style={styles.label}>Stocks Summary</Text>
             {stockEntry.length !== 0 ? (
               Object.values(checkedItems).some(value => value) ? (
-                <TouchableOpacity onPress={() => setSelectedDialogVisible(true)}>
+                <TouchableOpacity onPress={handleSelectedDialogVisible}>
                   <Text style={styles.clearSelectedText}>Clear selected</Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity onPress={() => setAllStocksDeleteDialog(true)}>
+                <TouchableOpacity onPress={handleDeletedAllDialogVisible}>
                   <Text style={styles.clearAllText}>Clear all</Text>
                 </TouchableOpacity>
               )
@@ -548,7 +611,7 @@ const handleDeletedAllDialogVisible = () => {
             ListEmptyComponent={<Text style={styles.noStocksText}>No Stocks are Added</Text>}
           />
         </View>
-
+      
       </View>
 
 
@@ -605,14 +668,16 @@ const handleDeletedAllDialogVisible = () => {
             <Text style={styles.tableHeader}>Stock Assign</Text>
           </View>
           {singleProduct?.Stocks?.map((item, index) => {
-            const assignedValue = addedStocks[index]?.assignedValue || 0;
+            const stockEntry = addedStocks.find(
+              (entry) => entry.id === `${singleProduct.ProductId}-${item.weight}`
+            );
+            const assignedValue = stockEntry ? stockEntry.assignedValue || 0 : 0;
             const stockLimit = item.stocks || 0;
             const cappedValue = Math.min(assignedValue, stockLimit).toString();
-            console.log("item", item);
-            const incrementStock = (index, item) => {
+            const incrementStock = (item) => {
               setErrorInput(false);
               setAddedStocks((prev) => {
-                const existingIndex = prev.findIndex(entry => entry.weight === item.weight);
+                const existingIndex = prev.findIndex(entry => entry.id === `${singleProduct.ProductId}-${item.weight}`);
                 if (existingIndex !== -1) {
                   return prev.map((entry, i) =>
                     i === existingIndex
@@ -628,20 +693,20 @@ const handleDeletedAllDialogVisible = () => {
                     ...prev,
                     {
                       id: `${singleProduct.ProductId}-${item.weight}`,
-                      assignedValue: 1,
+                      assignedValue: Math.min(1, item.stocks),
                       weight: item.weight,
                       price: item.price,
-                      totalStocks: 1,
+                      totalStocks: Math.min(1, item.stocks),
                     },
                   ];
                 }
               });
             };
             
-            const decrementStock = (index, item) => {
+            const decrementStock = (item) => {
               setErrorInput(false);
               setAddedStocks((prev) => {
-                const existingIndex = prev.findIndex(entry => entry.weight === item.weight);
+                const existingIndex = prev.findIndex(entry => entry.id === `${singleProduct.ProductId}-${item.weight}`);
                 if (existingIndex !== -1) {
                   return prev.map((entry, i) =>
                     i === existingIndex
@@ -664,20 +729,20 @@ const handleDeletedAllDialogVisible = () => {
                 </Text>
                 <Text style={styles.tableCell}>{item.stocks}</Text>
                 <View style={styles.stockInputContainer}>
-                  <TouchableOpacity onPress={() => incrementStock(index, item)}>
+                  <TouchableOpacity onPress={() => incrementStock(item)}>
                     <AntDesign name="plus" size={dimensions.md} />
                   </TouchableOpacity>
                   <View style={styles.stockInputWrapper}>
                     <TextInput
                       style={styles.stockInput}
                       key={index}
-                      onChangeText={text => handleInputChange(index, text, item)}
+                      onChangeText={text => handleInputChange(text, item)}
                       keyboardType="number-pad"
                       maxLength={item.stocks.toString().length}
                       value={cappedValue}
                     />
                   </View>
-                  <TouchableOpacity onPress={() => decrementStock(index, item)}>
+                  <TouchableOpacity onPress={() => decrementStock(item)}>
                     <AntDesign name="minus" size={dimensions.md} />
                   </TouchableOpacity>
                 </View>
@@ -968,8 +1033,8 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginBottom: dimensions.sm,
-    marginHorizontal: dimensions.sm,
+    marginHorizontal: dimensions.sm/2,
+    marginBottom:dimensions.sm/2
   },
   label: {
     fontFamily: fonts.semibold,
@@ -1155,5 +1220,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: fonts.regular,
   },
-
+  container2:{
+    marginTop: dimensions.sm/2
+  }
 });

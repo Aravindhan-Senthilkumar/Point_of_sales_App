@@ -1,14 +1,62 @@
 import { Image, Pressable,Text, StyleSheet,  View } from 'react-native'
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { colors } from '../constants/colors';
 import { dimensions } from '../constants/dimensions';
 import Footer from '../components/Footer';
 import { fonts } from '../constants/fonts';
 import { useNavigation } from '@react-navigation/native';
+import RNFS from 'react-native-fs';
+import { getFirestore } from '@react-native-firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import useAdminStore from '../store/useAdminStore';
 
 const WelcomePage = () => {
   const navigation = useNavigation(); 
-  
+
+  const { setAdminLogoUri,adminLogoUri } = useAdminStore();
+
+  useEffect(useCallback(() => {
+    fetchFromLocalStorage();
+  },[]),[adminLogoUri])
+
+  const fetchFromLocalStorage = async () => {
+    if(adminLogoUri === null || adminLogoUri === undefined){
+     await downloadAdminLogo();
+    }
+  }
+
+  const removeLogoFromLocalStorage = async () => {
+    await AsyncStorage.removeItem("AdminLogo")
+    const alreadyPresent = await AsyncStorage.getItem("AdminLogo")
+    console.log('alreadyPresent: ', alreadyPresent);
+    setAdminLogoUri(null)
+  }
+
+  const downloadAdminLogo = async () => {
+    try{
+      const response = await (await getFirestore().collection('admin').doc('admin').get()).data()
+      console.log('response: ', response);
+      const imageLogo = await response.AdminLogoUri
+      console.log('imageLogo: ', imageLogo);
+      const localPath = `${RNFS.DocumentDirectoryPath}/AdminLogo.png`
+
+      const downloadedResult =  await RNFS.downloadFile({
+        fromUrl:imageLogo,
+        toFile:localPath,
+      }).promise;
+
+      if(downloadedResult.statusCode !== 200){
+        console.log("Error downloading admin logo from firestore");
+        return;
+      }
+      const logoPath = 'file://' + localPath;
+      await AsyncStorage.setItem("AdminLogo",logoPath);
+      setAdminLogoUri(logoPath)
+    }catch(error){
+      console.log("Please connect with internet",error)
+    }
+  }
+
   return (
     <>
     <View style={styles.container}>

@@ -39,7 +39,7 @@ const ProductDetailsScreen = () => {
     setIsStockLimitModalVisible(true)
     setTimeout(() => {
       setIsStockLimitModalVisible(false)
-    },700)
+    },900)
   }
 
   const invalidModal = () => {
@@ -114,6 +114,7 @@ const ProductDetailsScreen = () => {
   };
 
   const selectedStock = product.Stocks.find((s) => s.weight === selectedWeight) || {};
+  console.log('selectedStock: ', selectedStock);
 
   const toggleMenuVisibility = () => {
     setMenuVisible(!menuVisible)
@@ -226,7 +227,7 @@ const ProductDetailsScreen = () => {
               <View style={styles.stockDetails}>
                 <Text style={styles.stockInfo}>
                   Price: <Text style={styles.boldText}>₹ {selectedStock.price}</Text> | Stocks Available:
-                  {selectedStock.stocks === 0 ? (
+                  {selectedStock.assignedValue === 0 ? (
                     <Text style={styles.outOfStockText}> Out of Stock</Text>
                   ) : (
                     <Text style={styles.boldText}> {selectedStock.assignedValue}</Text>
@@ -319,7 +320,7 @@ const ProductDetailsScreen = () => {
             size={dimensions.width / 4}
           />
           <Text style={styles.modalText}>
-            Stocks limit reached
+          This item is already in your cart with the maximum available stock.
           </Text>
         </View>
       </Modal>
@@ -508,6 +509,7 @@ const styles = StyleSheet.create({
   modalText: {
     fontFamily: fonts.semibold,
     marginTop: dimensions.sm,
+    textAlign:'center'
   },
 });
 

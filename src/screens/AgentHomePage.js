@@ -339,6 +339,16 @@ const AgentHomePage = () => {
             <Text style={styles.AdminDashboardText}>View Reports</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={styles.card}
+            onPress={() => handleNavigationToScreen ('PrintInvoiceScreen')}>
+            <MaterialCommunityIcons
+              name="file-document"
+              size={30}
+              color="black"
+            />
+            <Text style={styles.AdminDashboardText}>Print Invoice Screen</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.card, styles.logoutCard]}
             onPress={handleToggleModal}>
             <MaterialCommunityIcons name="logout" size={30} color="black" />

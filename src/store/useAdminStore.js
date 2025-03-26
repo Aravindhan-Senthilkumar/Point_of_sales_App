@@ -7,8 +7,10 @@ const useAdminStore = create(
         (set) => ({
     adminUsername:null,
     adminId:null,
+    adminLogoUri: null,
     setAdminUserName: (username) => set({ adminUsername:username }),
-    setAdminId: (id) => set({ adminId:id })
+    setAdminId: (id) => set({ adminId:id }),
+    setAdminLogoUri: (logoUri) => set({ adminLogoUri:logoUri })
     }),
     {
         name:'admin-storage',

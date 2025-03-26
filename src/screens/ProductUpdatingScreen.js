@@ -17,18 +17,19 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {getFirestore} from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
-import {Overlay} from '@rneui/themed';
+import {Button as RNBtn, Overlay} from '@rneui/themed';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Foundation from 'react-native-vector-icons/Foundation';
 import useProductStore from '../store/useProductStore';
 import {Dropdown} from 'react-native-element-dropdown';
 import { check, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
+import Feather from 'react-native-vector-icons/Feather'
+
 
 const ProductUpdatingScreen = () => {
   const data = useRoute().params.item;
   const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
-
   //State Updates
   const [imageUri, setImageUri] = useState(null);
 
@@ -304,6 +305,62 @@ const ProductUpdatingScreen = () => {
         stocks: '',
       }));
   }
+
+  const [updateSingleStock, setUpdateSingleStock] = useState({});
+  console.log('updateSingleStock: ', updateSingleStock);
+
+  const [editOverlayVisible, setEditOverlayVisible] = useState(false);
+  const [stock, setStock] = useState('');
+  console.log('stock: ', stock);
+  const [price, setPrice] = useState('');
+  console.log('price: ', price);
+  const [productIndex,setProductIndex] = useState(0);
+  console.log('productIndex: ', productIndex);
+  const handleEditStockList = (index) => {
+   const selectedProduct = stocksList[index]; 
+   setUpdateSingleStock(selectedProduct);
+   setStock(selectedProduct.stocks.toString());
+   setPrice(selectedProduct.price.toString());
+   setProductIndex(index)
+   setEditOverlayVisible(true);
+  }
+  const handleDismissEditModal = () => {
+    setUpdateSingleStock({});
+    setEditOverlayVisible(false)
+  }
+  const handleChangeStock = (text) => {
+    setUpdateSingleStock((prev) => {
+      return {
+        ...prev,
+        stocks:Number(text)
+      }
+    })
+    let formattedText = text.replace(/^0+/, '')
+    setStock(formattedText)
+  }
+  const handleChangePrice = (text) => {
+    setUpdateSingleStock((prev) => {
+      return {
+        ...prev,
+        price:Number(text)
+      }
+    })
+    let formattedText = text.replace(/^0+/, '')
+    setPrice(formattedText)
+  }
+
+  const [editProductLoader, setEditProductLoader] = useState(false);
+
+  const handleSaveEditedProduct = () => {
+    setEditProductLoader(true)
+    setStocksList((prev) => 
+      prev.map((item, index) => 
+        index === productIndex ? { ...item, ...updateSingleStock } : item
+      )
+    );
+    setEditProductLoader(false)
+    setEditOverlayVisible(false);
+  }
   return (
     <View style={styles.container}>
       <Appbar.Header style={styles.headerContainer}>
@@ -504,7 +561,10 @@ const ProductUpdatingScreen = () => {
               Stocks
             </Text>
             <Text variant="titleMedium" style={styles.tableHeader}>
-              Action
+              Edit
+            </Text>
+            <Text variant="titleMedium" style={styles.tableHeader}>
+              Delete
             </Text>
           </View>
           {/* Table Body */}
@@ -515,6 +575,13 @@ const ProductUpdatingScreen = () => {
                 <Text style={styles.tableCell}>{item.weight}</Text>
                 <Text style={styles.tableCell}>₹ {item.price}</Text>
                 <Text style={styles.tableCell}>{item.stocks}</Text>
+
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleEditStockList(index)}
+                >
+                  <Feather name='edit' size={dimensions.xl/2}/>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDeleteStocks(index)}
@@ -582,6 +649,52 @@ const ProductUpdatingScreen = () => {
             <Text style={styles.overlayText}>No Changes Detected</Text>
           </View>
         </Overlay>
+
+
+      <Overlay isVisible={editOverlayVisible} animationType="fade" overlayStyle={styles.customOverlayContainer} onBackdropPress={handleDismissEditModal}>
+      <View style={styles.customModalContainer}>
+        <AntDesign name='close' size={dimensions.xl} style={styles.closeIcon}onPress={handleDismissEditModal}/>
+        <Text style={styles.customModalTitle}>Stock Update</Text>
+        
+        <View style={styles.customInputContainer}>
+          <Text style={styles.customLabel}>Stocks:</Text>
+          <TextInput
+            keyboardType='number-pad'
+            cursorColor={colors.black}
+            activeOutlineColor={colors.black}
+            label='Stocks'
+            mode='outlined'
+            style={styles.customTextInput}
+            value={stock}
+            onChangeText={(text) => handleChangeStock(text)}
+          />
+        </View>
+
+        <View style={styles.customInputContainer}>
+          <Text style={styles.customLabel}>Weight:</Text>
+          <Text style={styles.customUneditableText}>{updateSingleStock ? updateSingleStock.weight : ''}</Text>
+        </View>
+
+        <View style={styles.customInputContainer}>
+          <Text style={styles.customLabel}>Price:</Text>
+          <TextInput
+            cursorColor={colors.black}
+            activeOutlineColor={colors.black}
+            label='Price'
+            mode='outlined'
+            style={styles.customTextInput}
+            value={price}
+            keyboardType="numeric"
+            onChangeText={(text) => handleChangePrice(text)}
+          />
+        </View>
+
+        <View style={styles.customButtonContainer}>
+          <RNBtn buttonStyle={styles.customBtn} title='Save' loading={editProductLoader} onPress={handleSaveEditedProduct}/>
+          <RNBtn buttonStyle={styles.customBtn} title='Cancel' onPress={handleDismissEditModal}/>
+        </View>
+      </View>
+    </Overlay>
       </ScrollView>
     </View>
   );
@@ -848,4 +961,65 @@ const styles = StyleSheet.create({
     fontSize: dimensions.md,
     textAlign:'center'
   },
+  customOverlayContainer: {
+    padding: dimensions.md,
+    borderRadius: dimensions.sm,
+    width: '80%',
+    backgroundColor: 'white',
+    alignItems: 'center',
+  },
+  customModalContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  customModalTitle: {
+    fontSize: dimensions.md,
+    fontWeight: 'bold',
+    marginBottom: dimensions.md,
+  },
+  customInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: dimensions.md,
+    height:dimensions.md
+  },
+  customLabel: {
+    fontSize: dimensions.xl / 2,
+    fontWeight: 'bold',
+  },
+  customTextInput: {
+    width: '50%',
+    textAlign: 'center',
+    height:dimensions.sm * 3
+  },
+  customUneditableText: {
+    fontSize: dimensions.xl/2,
+    color: 'gray',
+  },
+  customButtonContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent:'center',
+    marginTop:dimensions.sm,
+    gap:dimensions.md
+  },
+  customHeaderContainer:{
+    flexDirection:'row',
+    alignItems:'center',
+    width:'100%',
+    justifyContent:'space-between',
+  },
+  closeIcon:{
+    alignSelf:'flex-end'
+  },
+  customBtn:{
+    width:dimensions.width / 4,
+    borderRadius:dimensions.md,
+    backgroundColor:colors.darkblue
+  },
+  labelTextStyle:{
+    fontSize:dimensions.xl/2
+  }
 });

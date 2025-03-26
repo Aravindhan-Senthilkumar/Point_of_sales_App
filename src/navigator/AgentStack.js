@@ -11,6 +11,7 @@ import FileViewer from 'react-native-file-viewer';
 import notifee, {EventType} from '@notifee/react-native';
 import ViewReports from '../screens/ViewReports';
 import TodaySalesScreen from '../screens/TodaySalesScreen';
+import PrintInvoiceScreen from '../screens/PrintInvoiceScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -61,6 +62,7 @@ const AgentStack = () => {
         <Stack.Screen name='CartScreen' component={CartScreen}/>
         <Stack.Screen name='ViewReports' component={ViewReports}/>
         <Stack.Screen name='TodaySalesScreen' component={TodaySalesScreen}/>
+        <Stack.Screen name='PrintInvoiceScreen' component={PrintInvoiceScreen}/>
         </Stack.Navigator>
         </NavigationContainer>
     )

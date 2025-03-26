@@ -29,6 +29,8 @@ import useAdminStore from '../store/useAdminStore';
 import useAuthStore from '../store/useAuthStore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import { Button } from '@rneui/themed';
+import RNFS from 'react-native-fs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AdminLogin = () => {
   const [logoUri, setLogoUri] = useState(null);
@@ -44,7 +46,16 @@ const AdminLogin = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
-  const {adminUsername, setAdminUserName, setAdminId, adminId} = useAdminStore();
+  const {adminUsername, setAdminUserName, setAdminId, adminId,adminLogoUri,setAdminLogoUri} = useAdminStore();
+  console.log('adminLogoUri: ', adminLogoUri);
+
+  const handleFireStoreUpload = async (name,imageUrl) => {
+    await getFirestore()
+              .collection('admin')
+              .doc(name)
+              .set({AdminLogoUri: imageUrl}, {merge: true});
+    return true;
+  }
 
   const handleLogoUpload = () => {
     if (isLogin) {
@@ -85,14 +96,13 @@ const AdminLogin = () => {
           const imageUrl = await reference.getDownloadURL();
           console.log('imageUrl: ', imageUrl);
           if (adminUsername) {
-            await getFirestore()
-              .collection('admin')
-              .doc(adminUsername)
-              .set({AdminLogoUri: imageUrl}, {merge: true});
-            setLogoUri(imageUrl);
+            const hasPermissions = await handleFireStoreUpload(adminUsername,imageUrl);
+            if(hasPermissions){
+            await downloadAdminLogo();
             setIsVisible(true);
             setModalError('');
             setModalContent('Logo uploaded successfully!!!');
+            }
           } else {
             console.log('Agent ID not found. Cannot upload logo to Firestore.');
           }
@@ -112,6 +122,51 @@ const AdminLogin = () => {
   };
 
   const {setAuthUser} = useAuthStore();
+
+  const downloadAdminLogo = async () => {
+    try {
+      // Fetch logo URL from Firestore
+      const response = await getFirestore().collection('admin').doc('admin').get();
+      if (!response.exists) {
+        console.log('Admin document not found');
+        return;
+      }
+      const imageLogo = response.data().AdminLogoUri;
+      if (!imageLogo) {
+        console.log('AdminLogoUri not found in Firestore');
+        return;
+      }
+  
+      console.log('New Admin Logo URL:', imageLogo);
+      
+      // Local storage path for the admin logo
+      const localPath = `${RNFS.DocumentDirectoryPath}/AdminLogo.png`;
+      
+    const fileExists = await RNFS.exists(localPath);
+    if (fileExists) {
+      await RNFS.unlink(localPath);
+      console.log('Old admin logo deleted');
+    }
+
+      // Download the image and overwrite existing file
+      const downloadedResult = await RNFS.downloadFile({
+        fromUrl: imageLogo,
+        toFile: localPath,
+      }).promise;
+  
+      if (downloadedResult.statusCode !== 200) {
+        console.log("Error downloading admin logo from Firestore");
+        return;
+      }
+  
+      console.log("Admin logo updated successfully!");
+  
+      // Update UI with the new logo
+      setAdminLogoUri(`file://${localPath}?t=${new Date().getTime()}`);
+    } catch (error) {
+      console.log("Error downloading admin logo:", error);
+    }
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -138,9 +193,6 @@ const AdminLogin = () => {
         setError('Wrong password');
         setLoading(false);
         return;
-      }
-      if (isExists.data().AdminLogoUri) {
-        setLogoUri(isExists.data().AdminLogoUri);
       }
       setIsLogin(true);
       setAdminId(isExists.data().id);
@@ -370,7 +422,7 @@ const AdminLogin = () => {
                 <Image
                   style={styles.LogoImage}
                   source={
-                    logoUri ? {uri: logoUri} : require('../images/avatar.png')
+                    adminLogoUri !== null || adminLogoUri !== undefined ? {uri: adminLogoUri} : require('../images/avatar.png')
                   }
                 />
               )}
