@@ -1,6 +1,3 @@
-Below is a tailored README file for your GitHub repository based on the details you provided for your "POS App Point of Sales with Admin and Agents" project. This README is structured to clearly convey the purpose, features, and setup process of your project to potential users or contributors.
-
----
 
 # POS App - Point of Sales with Admin and Agents
 
