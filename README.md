@@ -30,7 +30,7 @@ The app supports offline capabilities with features like Bluetooth printing and 
 
 - **React Native**: Cross-platform mobile app development framework.
 - **JavaScript**: Core programming language for logic and functionality.
-- **Firebase (Assumed)**: For real-time database and authentication (based on typical POS app needs; adjust if not used).
+- **Firebase**: For real-time database and authentication (based on typical POS app needs; adjust if not used).
 - **Bluetooth Libraries**: For printer integration (e.g., `react-native-ble-plx` or similar).
 - **Google Drive API**: For cloud backups (via a suitable RN library like `react-native-google-drive-api-wrapper`).
 - **Barcode Libraries**: For generation and scanning (e.g., `react-native-barcode-builder`, `react-native-camera`).
